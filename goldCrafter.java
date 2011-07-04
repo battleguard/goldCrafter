@@ -1,5 +1,3 @@
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Font;
@@ -261,8 +259,8 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		log("Thank you for using the script!");
 		log("Time Ran  " + runClock.toElapsedString());
 		log("State:  " + curState);
-		log("Items Made: " + k.format(skillData.expGain(idx) / EXP_PER));
-		log("Items Per Hour: " + k.format(skillData.hourlyExp(idx) / EXP_PER));
+		log("Items Made: " + Double.toString(skillData.expGain(idx) / EXP_PER));
+		log("Items Per Hour: " + Double.toString(skillData.hourlyExp(idx) / EXP_PER));
 	}
 
 	/**
@@ -298,7 +296,6 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	}
 	
 	private static SkillData skillData = null;
-	private NumberFormat k = new DecimalFormat("###,###,###");
 	private final static int idx = Skills.getIndex("crafting");
 	private final static Rectangle paintBox = new Rectangle(5, 345, 510, 130);
 	
@@ -312,12 +309,12 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			return;
 		}
 		
-		final double xpGain = skillData.expGain(idx);
-		final double xpHour = skillData.hourlyExp(idx);
-		final double itemsMade = xpGain / EXP_PER;
-		final double itemsHour = xpHour / EXP_PER;
-		final double goldMade = itemsMade * (ITEM_PRICE - GOLDBAR_PRICE);
-		final double goldHour = itemsHour * (ITEM_PRICE - GOLDBAR_PRICE);
+		final int xpGain = skillData.expGain(idx);
+		final int xpHour = (int) skillData.hourlyExp(idx);
+		final int itemsMade = xpGain / EXP_PER;
+		final int itemsHour = xpHour / EXP_PER;
+		final int goldMade = itemsMade * (ITEM_PRICE - GOLDBAR_PRICE);
+		final int goldHour = itemsHour * (ITEM_PRICE - GOLDBAR_PRICE);
 		
 		// PAINT SETUP
 		g.setColor(Color.BLACK);
@@ -329,12 +326,12 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		g.drawString("Al Kharid Gold Crafter, by Battleguard", 10, 360);
 		g.drawString("Time Ran  " + runClock.toElapsedString(), 10, 380);
 		g.drawString("State:  " + curState, 10, 400);
-		g.drawString("Gold Made: " + k.format(goldMade) + "gp", 10, 420);
-		g.drawString("Gold Per Hour: " + k.format(goldHour) + "gp", 10, 440);
-		g.drawString("XP Gained: " + k.format(xpGain), 300, 360);
-		g.drawString("XP Per Hour: " + k.format(xpHour), 300, 380);			
-		g.drawString("Items Made: " + k.format(itemsMade), 300, 410);
-		g.drawString("Items Per Hour: " + k.format(itemsHour), 300, 430);
+		g.drawString("Gold Made: " + Integer.toString(goldMade) + "gp", 10, 420);
+		g.drawString("Gold Per Hour: " + Integer.toString(goldHour) + "gp", 10, 440);
+		g.drawString("XP Gained: " + Integer.toString(xpGain), 300, 360);
+		g.drawString("XP Per Hour: " + Integer.toString(xpHour), 300, 380);			
+		g.drawString("Items Made: " + Integer.toString(itemsMade), 300, 410);
+		g.drawString("Items Per Hour: " + Integer.toString(itemsHour), 300, 430);
 		
 		// CODE FOR PROGRESS BAR
 		g.setColor(Color.white);
