@@ -312,12 +312,12 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			return;
 		}
 		
-		//final double xpGain = skillData.expGain(idx);
-		//final double xpHour = skillData.hourlyExp(idx);
-		//final double itemsMade = xpGain / EXP_PER;
-		//final double itemsHour = xpHour / EXP_PER;
-		//final double goldMade = itemsMade * (ITEM_PRICE - GOLDBAR_PRICE);
-		//final double goldHour = itemsHour * (ITEM_PRICE - GOLDBAR_PRICE);
+		final double xpGain = skillData.expGain(idx);
+		final double xpHour = skillData.hourlyExp(idx);
+		final double itemsMade = xpGain / EXP_PER;
+		final double itemsHour = xpHour / EXP_PER;
+		final double goldMade = itemsMade * (ITEM_PRICE - GOLDBAR_PRICE);
+		final double goldHour = itemsHour * (ITEM_PRICE - GOLDBAR_PRICE);
 		
 		// PAINT SETUP
 		g.setColor(Color.BLACK);
@@ -329,12 +329,12 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		g.drawString("Al Kharid Gold Crafter, by Battleguard", 10, 360);
 		g.drawString("Time Ran  " + runClock.toElapsedString(), 10, 380);
 		g.drawString("State:  " + curState, 10, 400);
-		g.drawString("Gold Made: " + k.format((skillData.expGain(idx) / EXP_PER) * (ITEM_PRICE - GOLDBAR_PRICE)) + "gp", 10, 420);
-		g.drawString("Gold Per Hour: " + k.format((skillData.hourlyExp(idx) / EXP_PER) * (ITEM_PRICE - GOLDBAR_PRICE)) + "gp", 10, 440);
-		g.drawString("XP Gained: " + k.format(skillData.expGain(idx)), 300, 360);
-		g.drawString("XP Per Hour: " + k.format(skillData.hourlyExp(idx)), 300, 380);			
-		g.drawString("Items Made: " + k.format(skillData.expGain(idx) / EXP_PER), 300, 410);
-		g.drawString("Items Per Hour: " + k.format(skillData.hourlyExp(idx) / EXP_PER), 300, 430);
+		g.drawString("Gold Made: " + k.format(goldMade) + "gp", 10, 420);
+		g.drawString("Gold Per Hour: " + k.format(goldHour) + "gp", 10, 440);
+		g.drawString("XP Gained: " + k.format(xpGain), 300, 360);
+		g.drawString("XP Per Hour: " + k.format(xpHour), 300, 380);			
+		g.drawString("Items Made: " + k.format(itemsMade), 300, 410);
+		g.drawString("Items Per Hour: " + k.format(itemsHour), 300, 430);
 		
 		// CODE FOR PROGRESS BAR
 		g.setColor(Color.white);
