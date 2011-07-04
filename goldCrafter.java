@@ -40,7 +40,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	private final static int necklaceComponent = 67, amuletComponent = 53, ringComponent = 82;
 	private final static int necklaceID = 1654, amuletID = 1673, ringID = 1635;
 	private final static int necklaceXP = 20, amuletXP = 30, ringXP = 15;
-	private static int COMPONENT_ID, MOULD_ID, EXP_PER, ITEM_PRICE, ITEM_ID, GOLDBAR_PRICE;
+	private static int COMPONENT_ID, MOULD_ID, EXP_PER, ITEM_PRICE, ITEM_ID;
 	private static Timer runClock = new Timer(0);
 
 	private enum State {
@@ -67,7 +67,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		}
 		temp = grandExchange.lookup(GoldBarID);
 		if (temp != null) {
-			GOLDBAR_PRICE = temp.getGuidePrice();
+			ITEM_PRICE -= temp.getGuidePrice();
 		} else {
 			log("error getting item from GE");
 			return false;
@@ -313,8 +313,8 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		final int xpHour = (int) skillData.hourlyExp(idx);
 		final int itemsMade = xpGain / EXP_PER;
 		final int itemsHour = xpHour / EXP_PER;
-		final int goldMade = itemsMade * (ITEM_PRICE - GOLDBAR_PRICE);
-		final int goldHour = itemsHour * (ITEM_PRICE - GOLDBAR_PRICE);
+		final int goldMade = itemsMade * ITEM_PRICE;
+		final int goldHour = itemsHour * ITEM_PRICE;
 		
 		// PAINT SETUP
 		g.setColor(Color.BLACK);
