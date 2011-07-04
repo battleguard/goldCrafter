@@ -7,6 +7,9 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -28,7 +31,12 @@ import org.rsbot.script.wrappers.RSTilePath;
 import org.rsbot.script.util.SkillData;
 import org.rsbot.script.util.Timer;
 
-@ScriptManifest(authors = { "Battleguard" }, version = 1.04, keywords = {}, description = "F2P Al Kharid Gold Crafter, by Battleguard", name = "F2P Al Kharid Gold Crafter")
+@ScriptManifest(
+		authors = { "Battleguard" }, 
+		version = 1.04,
+		description = "F2P Al Kharid Gold Crafter, by Battleguard", 
+		name = "F2P Al Kharid Gold Crafter")
+		
 public class goldCrafter extends Script implements PaintListener, MouseMotionListener {
 
 	private final static int FurnaceID = 11666, GoldBarID = 2357, bankBoothID = 35647;
@@ -42,17 +50,17 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	private final static int necklaceXP = 20, amuletXP = 30, ringXP = 15;
 	private static int COMPONENT_ID, MOULD_ID, EXP_PER, ITEM_PRICE, ITEM_ID;
 	private static Timer runClock = new Timer(0);
+	private NumberFormat k = new DecimalFormat("###,###,###");
 
-	private enum State {
+	private static enum State {
 		withdrawling, depositing, To_Bank, To_Furnace, Crafting, at_Bank
 	}
 
 	private State curState = null;
-
 	private final static RSArea FurnaceArea = new RSArea(new RSTile(3274, 3184), new RSTile(3277, 3188));
 	private final static RSTile[] tilesToFurnace = { new RSTile(3269, 3167), new RSTile(3276, 3170), new RSTile(3278, 3176), new RSTile(3281, 3181),
 			new RSTile(3278, 3186), new RSTile(3275, 3186) };
-	private static RSTilePath pathToFurnace;
+	private final RSTilePath pathToFurnace = walking.newTilePath(tilesToFurnace);
 
 	public boolean onStart() {
 		g.setVisible(true);
@@ -73,8 +81,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			return false;
 		}
 		log("Thank you for starting Gold Crafter");
-		pathToFurnace = walking.newTilePath(tilesToFurnace);
-		
+		//pathToFurnace = walking.newTilePath(tilesToFurnace);
 		return true;
 	}
 
@@ -259,8 +266,8 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		log("Thank you for using the script!");
 		log("Time Ran  " + runClock.toElapsedString());
 		log("State:  " + curState);
-		log("Items Made: " + Double.toString(skillData.expGain(idx) / EXP_PER));
-		log("Items Per Hour: " + Double.toString(skillData.hourlyExp(idx) / EXP_PER));
+		log("Items Made: " + k.format(skillData.expGain(idx) / EXP_PER));
+		log("Items Per Hour: " + k.format(skillData.hourlyExp(idx) / EXP_PER));
 	}
 
 	/**
@@ -301,7 +308,6 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	
 	@Override
 	public void onRepaint(Graphics g) {
-		((Graphics2D) g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		if (skillData == null) {
 			skillData = skills.getSkillDataInstance();
 		}		
@@ -309,12 +315,12 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			return;
 		}
 		
-		final int xpGain = skillData.expGain(idx);
-		final int xpHour = (int) skillData.hourlyExp(idx);
-		final int itemsMade = xpGain / EXP_PER;
-		final int itemsHour = xpHour / EXP_PER;
-		final int goldMade = itemsMade * ITEM_PRICE;
-		final int goldHour = itemsHour * ITEM_PRICE;
+		final double xpGain = skillData.expGain(idx);
+	    final double xpHour = skillData.hourlyExp(idx);
+	    final double itemsMade = xpGain / EXP_PER;
+	    final double itemsHour = xpHour / EXP_PER;
+	    final double goldMade = itemsMade * ITEM_PRICE ;
+	    final double goldHour = itemsHour * ITEM_PRICE ;
 		
 		// PAINT SETUP
 		g.setColor(Color.BLACK);
@@ -326,12 +332,12 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		g.drawString("Al Kharid Gold Crafter, by Battleguard", 10, 360);
 		g.drawString("Time Ran  " + runClock.toElapsedString(), 10, 380);
 		g.drawString("State:  " + curState, 10, 400);
-		g.drawString("Gold Made: " + Integer.toString(goldMade) + "gp", 10, 420);
-		g.drawString("Gold Per Hour: " + Integer.toString(goldHour) + "gp", 10, 440);
-		g.drawString("XP Gained: " + Integer.toString(xpGain), 300, 360);
-		g.drawString("XP Per Hour: " + Integer.toString(xpHour), 300, 380);			
-		g.drawString("Items Made: " + Integer.toString(itemsMade), 300, 410);
-		g.drawString("Items Per Hour: " + Integer.toString(itemsHour), 300, 430);
+		g.drawString("Gold Made: " + k.format(goldMade) + "gp", 10, 420);
+	    g.drawString("Gold Per Hour: " + k.format(goldHour) + "gp", 10, 440);
+	    g.drawString("XP Gained: " + k.format(xpGain), 300, 360);
+	    g.drawString("XP Per Hour: " + k.format(xpHour), 300, 380);      
+	    g.drawString("Items Made: " + k.format(itemsMade), 300, 410);
+	    g.drawString("Items Per Hour: " + k.format(itemsHour), 300, 430);
 		
 		// CODE FOR PROGRESS BAR
 		g.setColor(Color.white);
@@ -340,7 +346,8 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 		g.setColor(Color.green);
 		g.fill3DRect(20, 450, barWidth, 20, true);
 		g.setColor(Color.black);
-		g.drawString("Cur lvl: " + skills.getCurrentLevel(Skills.CRAFTING) + "  " + skills.getPercentToNextLevel(Skills.CRAFTING) + "%", 220, 464);
+		g.drawString("Cur lvl: " + skills.getCurrentLevel(Skills.CRAFTING) + "  " 
+				+ skills.getPercentToNextLevel(Skills.CRAFTING) + "%", 220, 464);
 	}
 
 	/**
