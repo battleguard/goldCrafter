@@ -141,7 +141,6 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	private boolean startedCrafting = false;
 	private boolean clickOnFurnace = false;
 	private int prevXP;
-	//private long lastItemmade;
 	private static Timer furnaceReset = null;
 
 	/**
@@ -154,7 +153,6 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 				startedCrafting = true;
 				prevXP = skills.getCurrentExp(Skills.CRAFTING);
 				furnaceReset = new Timer(5000);
-				//lastItemmade = System.currentTimeMillis();
 			} else {
 				furnaceMethod();
 			}
@@ -163,10 +161,8 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			antiban();
 			if (currentXP > prevXP) {
 				prevXP = currentXP;
-				//lastItemmade = System.currentTimeMillis();
 				furnaceReset.reset();
 			} else {
-				//if ((lastItemmade + 5000) < System.currentTimeMillis()) {
 				if (!furnaceReset.isRunning()) {
 					startedCrafting = false;
 				}
@@ -190,10 +186,8 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			}				
 			furnace.interact("Use");
 			clickOnFurnace = true;
-			//lastItemmade = System.currentTimeMillis();
 			furnaceReset = new Timer(3000);
 		} else {
-			//if ((lastItemmade + 3000) < System.currentTimeMillis()) {
 			if (!furnaceReset.isRunning()) {
 				clickOnFurnace = false;
 			}
