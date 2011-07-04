@@ -49,7 +49,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	private static Timer runClock = new Timer(0);
 	private NumberFormat k = new DecimalFormat("###,###,###");
 
-	private static enum State {
+	private enum State {
 		withdrawling, depositing, To_Bank, To_Furnace, Crafting, at_Bank
 	}
 
@@ -57,7 +57,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 	private final static RSArea FurnaceArea = new RSArea(new RSTile(3274, 3184), new RSTile(3277, 3188));
 	private final static RSTile[] tilesToFurnace = { new RSTile(3269, 3167), new RSTile(3276, 3170), new RSTile(3278, 3176), new RSTile(3281, 3181),
 			new RSTile(3278, 3186), new RSTile(3275, 3186) };
-	private final RSTilePath pathToFurnace = walking.newTilePath(tilesToFurnace);
+	private RSTilePath pathToFurnace;
 
 	public boolean onStart() {
 		g.setVisible(true);
@@ -78,7 +78,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			return false;
 		}
 		log("Thank you for starting Gold Crafter");
-		//pathToFurnace = walking.newTilePath(tilesToFurnace);
+		pathToFurnace = walking.newTilePath(tilesToFurnace);
 		return true;
 	}
 
