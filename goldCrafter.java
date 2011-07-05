@@ -30,21 +30,21 @@ import org.rsbot.script.util.Timer;
 
 @ScriptManifest(
 		authors = { "Battleguard" }, 
-		version = 1.04,
+		version = 1.05,
 		description = "F2P Al Kharid Gold Crafter, by Battleguard", 
 		name = "F2P Al Kharid Gold Crafter")
 		
-public class goldCrafter extends Script implements PaintListener, MouseMotionListener {
+public class goldCrafter2 extends Script implements PaintListener, MouseMotionListener {
 
 	private final static int FurnaceID = 11666, GoldBarID = 2357, bankBoothID = 35647;
 
 	private static boolean guiWait = true;
 	private craftingGUI g = new craftingGUI();
 
-	private final static int necklaceMouldID = 1597, aumletMouldID = 1595, ringMouldID = 1592;
-	private final static int necklaceComponent = 67, amuletComponent = 53, ringComponent = 82;
-	private final static int necklaceID = 1654, amuletID = 1673, ringID = 1635;
-	private final static int necklaceXP = 20, amuletXP = 30, ringXP = 15;
+	private final static int necklaceMouldID = 1597, aumletMouldID = 1595, ringMouldID = 1592, braceletMouldID = 11065;
+	private final static int necklaceComponent = 67, amuletComponent = 53, ringComponent = 82, braceletComponent = 33;
+	private final static int necklaceID = 1654, amuletID = 1673, ringID = 1635, braceletID = 11069;
+	private final static int necklaceXP = 20, amuletXP = 30, ringXP = 15, braceletXP = 25;
 	private static int COMPONENT_ID, MOULD_ID, EXP_PER, ITEM_PRICE, ITEM_ID;
 	private static Timer runClock = new Timer(0);
 	private NumberFormat k = new DecimalFormat("###,###,###");
@@ -374,6 +374,11 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 				MOULD_ID = aumletMouldID;
 				EXP_PER = amuletXP;
 				ITEM_ID = amuletID;
+			} else if (chosen.equals("Gold Bracelet")) {
+				COMPONENT_ID = braceletMouldID;
+				MOULD_ID = braceletComponent;
+				EXP_PER = braceletXP;
+				ITEM_ID = braceletID;
 			}
 			guiWait = false;
 			g.dispose();
@@ -400,7 +405,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			label2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 			//---- itemSelected ----
-			itemSelected.setModel(new DefaultComboBoxModel(new String[] { "Gold Ring", "Gold Necklace", "Gold Amulet" }));
+			itemSelected.setModel(new DefaultComboBoxModel(new String[] { "Gold Ring", "Gold Necklace", "Gold Amulet", "Gold Bracelet" }));
 
 			//---- startButton ----
 			startButton.setText("Start");
