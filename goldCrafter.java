@@ -104,6 +104,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 				break;
 			case To_Furnace:
 				startedCrafting = false;
+				clickOnFurnace = false;
 				walkToFurnace();
 				break;
 			case Crafting:
@@ -290,10 +291,7 @@ public class goldCrafter extends Script implements PaintListener, MouseMotionLis
 			mouse.moveSlightly();
 			sleep(200, 600);
 			mouse.moveRandomly(150, 350);
-		} else if (b > 50 && b <= 100) {
-			//camera.setAngle(random(5, 10));
-			sleep(400, 1200);
-		} else if (b > 100 && b <= 150) {
+		}  else if (b > 100 && b <= 150) {
 			mouse.moveOffScreen();
 			sleep(random(600, random(1200, 2000)));
 		} else if (b == 500) {
