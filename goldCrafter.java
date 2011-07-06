@@ -18,36 +18,51 @@ import org.rsbot.event.listeners.PaintListener;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
 import org.rsbot.script.methods.Game.Tab;
-import org.rsbot.script.methods.GrandExchange.GEItem;
 import org.rsbot.script.methods.Skills;
+import org.rsbot.script.util.SkillData;
+import org.rsbot.script.util.Timer;
+
 import org.rsbot.script.wrappers.RSArea;
 import org.rsbot.script.wrappers.RSItem;
 import org.rsbot.script.wrappers.RSObject;
 import org.rsbot.script.wrappers.RSTile;
 import org.rsbot.script.wrappers.RSTilePath;
-import org.rsbot.script.util.SkillData;
-import org.rsbot.script.util.Timer;
 
 @ScriptManifest(
 		authors = { "Battleguard" }, 
-		version = 1.05,
-		description = "F2P Al Kharid Gold Crafter, by Battleguard", 
-		name = "F2P Al Kharid Gold Crafter")
+		version = 2.00,
+		description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", 
+		name = "Al Kharid AIO Gem/Gold Crafter")
 		
-public class goldCrafter2 extends Script implements PaintListener, MouseMotionListener {
+public class goldCrafter extends Script implements PaintListener, MouseMotionListener {
 
-	private final static int FurnaceID = 11666, GoldBarID = 2357, bankBoothID = 35647;
+	private final static int FURNACE_ID = 11666, BANKBOOTH_ID = 35647;
 
 	private static boolean guiWait = true;
 	private craftingGUI g = new craftingGUI();
 
-	private final static int necklaceMouldID = 1597, aumletMouldID = 1595, ringMouldID = 1592, braceletMouldID = 11065;
-	private final static int necklaceComponent = 67, amuletComponent = 53, ringComponent = 82, braceletComponent = 33;
-	private final static int necklaceID = 1654, amuletID = 1673, ringID = 1635, braceletID = 11069;
-	private final static int necklaceXP = 20, amuletXP = 30, ringXP = 15, braceletXP = 25;
-	private static int COMPONENT_ID, MOULD_ID, EXP_PER, ITEM_PRICE, ITEM_ID;
+	
 	private static Timer runClock = new Timer(0);
 	private NumberFormat k = new DecimalFormat("###,###,###");
+	
+	private final static int RING_MOULD_ID = 1592, NECK_MOULD_ID = 1597, AMMY_MOULD_ID = 1595, BRACELET_MOULD_ID = 11065;;
+	private static int MOULD_ID = RING_MOULD_ID;
+	
+	// ID OF GEMS
+	private final static int GOLD_ID = 2357, SAPPHIRE_ID = 1607, EMERALD_ID = 1605, RUBY_ID = 1603, DIAMOND_ID = 1601;
+	private static int GEM_ID = GOLD_ID;
+	
+	// XP USED TO CALCULATE STATS
+	private final static int GOLD_XP = 15, SAPPHIRE_XP = 40, EMERALD_XP = 55, RUBY_XP = 70, DIAMOND_XP = 85;
+	private static int EXP_PER = GOLD_XP;
+	
+	// COMPONENTS FOR INTERFACE AT FURNACE
+	private final static int GOLD_RING_COMP = 82;//, GOLD_NECK_COMP = 68, GOLD_AMMY_COMP = 53;
+	private static int COMPONENT_ID = GOLD_RING_COMP;
+	
+	// PRICE OF ITEM USED FOR CALCULATING PROFITS
+	private static int ITEM_PRICE;
+	
 
 	private enum State {
 		withdrawling, depositing, To_Bank, To_Furnace, Crafting, at_Bank
@@ -62,20 +77,10 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 	public boolean onStart() {
 		g.setVisible(true);
 		while (guiWait)
-			sleep(500);
-		GEItem temp = grandExchange.lookup(ITEM_ID);
-		if (temp != null) {
-			ITEM_PRICE = temp.getGuidePrice();
-		} else {
-			log("error getting item from GE");
-			return false;
-		}
-		temp = grandExchange.lookup(GoldBarID);
-		if (temp != null) {
-			ITEM_PRICE -= temp.getGuidePrice();
-		} else {
-			log("error getting item from GE");
-			return false;
+			sleep(500);				
+		ITEM_PRICE -= grandExchange.lookup(GOLD_ID).getGuidePrice();
+		if(GEM_ID != GOLD_ID) {
+			ITEM_PRICE -= grandExchange.lookup(GEM_ID).getGuidePrice();
 		}
 		log("Thank you for starting Gold Crafter");
 		pathToFurnace = walking.newTilePath(tilesToFurnace);
@@ -99,7 +104,6 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 				break;
 			case To_Furnace:
 				startedCrafting = false;
-				clickOnFurnace = false;
 				walkToFurnace();
 				break;
 			case Crafting:
@@ -115,7 +119,7 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 		}
 		return random(75, 150);
 	}
-
+	
 	/**
 	 * Withdrawals 27 gold bars and will also withdrawal the appropriate mould to make item.
 	 * Will stop script if you have run out of gold bars or do not have a mould.
@@ -127,22 +131,27 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 					log("You do not have a Mould");
 					stopScript();
 				}
-				bank.withdraw(MOULD_ID, 1);
+				bank.withdraw(MOULD_ID, 1);				
 			}
-			if (bank.getCount(GoldBarID) == 0) {
-				log("You do not have any more GoldBars");
+			if (bank.getCount(GOLD_ID) == 0 || bank.getCount(GEM_ID) == 0) {
+				log("You do not have any more GoldBars or gems");
 				stopScript();
 			}
-			bank.withdraw(GoldBarID, 0);
+			
+			if(GEM_ID == GOLD_ID) {
+				bank.withdraw(GOLD_ID, 0); // GOLD BAR BANKING
+			} else {
+				bank.withdraw(GOLD_ID, 13); // GEM BANKING
+				bank.withdraw(GEM_ID, 13);
+			}					
 		} catch (Exception e) {
 			log("Problem withdraweling items from bank");
 			log(e);
 		}
 	}
 
-	private boolean startedCrafting = false;
-	private boolean clickOnFurnace = false;
-	private int prevXP;
+	private static boolean startedCrafting = false, clickOnFurnace = false;
+	private static int prevXP;
 	private static Timer furnaceReset = null;
 
 	/**
@@ -171,6 +180,8 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 			}
 		}
 	}
+	
+	
 
 	/**
 	 * Method to make sure we click the furnace
@@ -178,8 +189,8 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 	 */
 	void furnaceMethod() {
 		if (!clickOnFurnace) {
-			RSItem bar = inventory.getItem(GoldBarID);
-			RSObject furnace = objects.getNearest(FurnaceID);
+			RSItem bar = inventory.getItem(GOLD_ID);
+			RSObject furnace = objects.getNearest(FURNACE_ID);
 			if (!inventory.isItemSelected() && bar != null) {
 				inventory.selectItem(bar);
 			}
@@ -199,13 +210,16 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 	/**
 	 * Walking method to furnace also makes sure we are running
 	 */
+	
 	private void walkToFurnace() {
 		pathToFurnace.traverse();
 	}
+	
 
 	/**
 	 * Walking method to bank also makes sure we are running
 	 */
+	
 	private void walkToBank() {
 		pathToFurnace.reverse();
 		pathToFurnace.traverse();
@@ -238,10 +252,10 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 	 */
 	private State getState() {
 		try {
-			if (inventory.contains(GoldBarID) && inventory.contains(MOULD_ID)) {
+			if (inventory.contains(GOLD_ID) && inventory.contains(GEM_ID) && inventory.contains(MOULD_ID)) {
 				return FurnaceArea.contains(players.getMyPlayer().getLocation()) ? State.Crafting : State.To_Furnace;
 			} else {
-				if (objects.getNearest(bankBoothID) != null && objects.getNearest(bankBoothID).isOnScreen()) {
+				if (objects.getNearest(BANKBOOTH_ID) != null && objects.getNearest(BANKBOOTH_ID).isOnScreen()) {
 					if (!bank.isOpen()) {
 						return State.at_Bank;
 					}
@@ -277,7 +291,7 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 			sleep(200, 600);
 			mouse.moveRandomly(150, 350);
 		} else if (b > 50 && b <= 100) {
-			camera.setAngle(random(5, 10));
+			//camera.setAngle(random(5, 10));
 			sleep(400, 1200);
 		} else if (b > 100 && b <= 150) {
 			mouse.moveOffScreen();
@@ -289,7 +303,7 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 		}
 	}
 
-	private Point mouseSpot;
+	private static Point mouseSpot;
 
 	public void mouseDragged(MouseEvent e) {
 	}
@@ -326,7 +340,7 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 		g.setColor(Color.WHITE);
 
 		// TEXT DATA 
-		g.drawString("Al Kharid Gold Crafter, by Battleguard", 10, 360);
+		g.drawString("F2P Al Kharid AIO Gold Crafter, by Battleguard", 10, 360);
 		g.drawString("Time Ran  " + runClock.toElapsedString(), 10, 380);
 		g.drawString("State:  " + curState, 10, 400);
 		g.drawString("Gold Made: " + k.format(goldMade) + "gp", 10, 420);
@@ -358,31 +372,46 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 		}
 
 		private void button1ActionPerformed(ActionEvent e) {
-			String chosen = itemSelected.getSelectedItem().toString();
-			if (chosen.equals("Gold Ring")) {
-				COMPONENT_ID = ringComponent;
-				MOULD_ID = ringMouldID;
-				EXP_PER = ringXP;
-				ITEM_ID = ringID;
-			} else if (chosen.equals("Gold Necklace")) {
-				COMPONENT_ID = necklaceComponent;
-				MOULD_ID = necklaceMouldID;
-				EXP_PER = necklaceXP;
-				ITEM_ID = necklaceID;
-			} else if (chosen.equals("Gold Amulet")) {
-				COMPONENT_ID = amuletComponent;
-				MOULD_ID = aumletMouldID;
-				EXP_PER = amuletXP;
-				ITEM_ID = amuletID;
-			} else if (chosen.equals("Gold Bracelet")) {
-				COMPONENT_ID = braceletMouldID;
-				MOULD_ID = braceletComponent;
-				EXP_PER = braceletXP;
-				ITEM_ID = braceletID;
+			String gem = gemSelected.getSelectedItem().toString();
+			String type = typeSelected.getSelectedItem().toString();
+			
+			
+			if (gem.equals("Sapphire")) {
+				GEM_ID = SAPPHIRE_ID;
+				EXP_PER = SAPPHIRE_XP;
+				COMPONENT_ID += 2;
+			} else if (gem.equals("Emerald")) {
+				GEM_ID = EMERALD_ID;
+				EXP_PER = EMERALD_XP;
+				COMPONENT_ID += 4;
+			} else if (gem.equals("Ruby")) {
+				GEM_ID = RUBY_ID;
+				EXP_PER = RUBY_XP;
+				COMPONENT_ID += 6;
+			} else if (gem.equals("Diamond")) {
+				GEM_ID = DIAMOND_ID;
+				EXP_PER = DIAMOND_XP;
+				COMPONENT_ID += 8;
 			}
+			
+			if(type.equals("necklace")) {
+				MOULD_ID = NECK_MOULD_ID;
+				EXP_PER += 5;
+				COMPONENT_ID -= 14;
+			} else if(type.equals("amulet")) {
+				MOULD_ID = AMMY_MOULD_ID;
+				EXP_PER += 15;
+				COMPONENT_ID -= 29;
+			} else if(type.equals("bracelet")) {
+				MOULD_ID = BRACELET_MOULD_ID;
+				EXP_PER += 10;
+				COMPONENT_ID -= 49;
+			} 
+			
+			ITEM_PRICE = grandExchange.lookup(gem + " " + type).getGuidePrice();
+			
 			guiWait = false;
 			g.dispose();
-			// TODO add your code here
 		}
 
 		private void initComponents() {
@@ -390,22 +419,30 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 			// Generated using JFormDesigner Evaluation license - Battleguard
 			label1 = new JLabel();
 			label2 = new JLabel();
-			itemSelected = new JComboBox();
+			gemSelected = new JComboBox();
 			startButton = new JButton();
+			label3 = new JLabel();
+			typeSelected = new JComboBox();
 
 			//======== this ========
 			Container contentPane = getContentPane();
 
 			//---- label1 ----
-			label1.setText("Al Kharid Gold Crafter");
+			label1.setText("Al Kaharid Gold Crafter");
 			label1.setFont(new Font("Tahoma", Font.PLAIN, 20));
 
 			//---- label2 ----
 			label2.setText("Crafting Item:");
 			label2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-			//---- itemSelected ----
-			itemSelected.setModel(new DefaultComboBoxModel(new String[] { "Gold Ring", "Gold Necklace", "Gold Amulet", "Gold Bracelet" }));
+			//---- gemSelected ----
+			gemSelected.setModel(new DefaultComboBoxModel(new String[] {
+				"Gold",
+				"Sapphire",
+				"Emerald",
+				"Ruby",
+				"Diamond"
+			}));
 
 			//---- startButton ----
 			startButton.setText("Start");
@@ -416,44 +453,59 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 				}
 			});
 
+			//---- label3 ----
+			label3.setText("Type to craft: ");
+			label3.setFont(new Font("Tahoma", Font.PLAIN, 14));
+
+			//---- typeSelected ----
+			typeSelected.setModel(new DefaultComboBoxModel(new String[] {
+				"ring",
+				"necklace",
+				"bracelet",
+				"amulet"
+			}));
+
 			GroupLayout contentPaneLayout = new GroupLayout(contentPane);
 			contentPane.setLayout(contentPaneLayout);
-			contentPaneLayout.setHorizontalGroup(contentPaneLayout
-					.createParallelGroup()
-					.addGroup(
-							contentPaneLayout
-									.createSequentialGroup()
-									.addContainerGap()
-									.addGroup(
-											contentPaneLayout
-													.createParallelGroup()
-													.addGroup(
-															contentPaneLayout
-																	.createSequentialGroup()
-																	.addComponent(label2)
-																	.addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-																	.addComponent(itemSelected, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-																			GroupLayout.PREFERRED_SIZE)).addComponent(label1))
-									.addContainerGap(23, Short.MAX_VALUE))
-					.addGroup(
-							GroupLayout.Alignment.TRAILING,
-							contentPaneLayout.createSequentialGroup().addContainerGap(170, Short.MAX_VALUE).addComponent(startButton)
-									.addContainerGap()));
-			contentPaneLayout.setVerticalGroup(contentPaneLayout.createParallelGroup()
-					.addGroup(
-							contentPaneLayout
-									.createSequentialGroup()
-									.addContainerGap()
-									.addComponent(label1)
-									.addGap(31, 31, 31)
-									.addGroup(
-											contentPaneLayout
-													.createParallelGroup(GroupLayout.Alignment.BASELINE)
-													.addComponent(label2)
-													.addComponent(itemSelected, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE,
-															GroupLayout.PREFERRED_SIZE))
-									.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 77, Short.MAX_VALUE).addComponent(startButton)
-									.addContainerGap()));
+			contentPaneLayout.setHorizontalGroup(
+				contentPaneLayout.createParallelGroup()
+					.addGroup(contentPaneLayout.createSequentialGroup()
+						.addContainerGap()
+						.addGroup(contentPaneLayout.createParallelGroup()
+							.addGroup(contentPaneLayout.createSequentialGroup()
+								.addGroup(contentPaneLayout.createParallelGroup()
+									.addGroup(contentPaneLayout.createSequentialGroup()
+										.addComponent(label2)
+										.addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+										.addComponent(gemSelected, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+									.addComponent(label1))
+								.addContainerGap(23, Short.MAX_VALUE))
+							.addGroup(GroupLayout.Alignment.TRAILING, contentPaneLayout.createSequentialGroup()
+								.addComponent(startButton)
+								.addContainerGap())
+							.addGroup(contentPaneLayout.createSequentialGroup()
+								.addComponent(label3)
+								.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(typeSelected, 0, 69, Short.MAX_VALUE)
+								.addGap(65, 65, 65))))
+			);
+			contentPaneLayout.setVerticalGroup(
+				contentPaneLayout.createParallelGroup()
+					.addGroup(contentPaneLayout.createSequentialGroup()
+						.addContainerGap()
+						.addComponent(label1)
+						.addGap(31, 31, 31)
+						.addGroup(contentPaneLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+							.addComponent(label2)
+							.addComponent(gemSelected, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 31, Short.MAX_VALUE)
+						.addGroup(contentPaneLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+							.addComponent(label3)
+							.addComponent(typeSelected, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGap(26, 26, 26)
+						.addComponent(startButton)
+						.addContainerGap())
+			);
 			pack();
 			setLocationRelativeTo(getOwner());
 			// JFormDesigner - End of component initialization  //GEN-END:initComponents
@@ -463,8 +515,10 @@ public class goldCrafter2 extends Script implements PaintListener, MouseMotionLi
 		// Generated using JFormDesigner Evaluation license - Battleguard
 		private JLabel label1;
 		private JLabel label2;
-		private JComboBox itemSelected;
+		private JComboBox gemSelected;
 		private JButton startButton;
+		private JLabel label3;
+		private JComboBox typeSelected;
 		// JFormDesigner - End of variables declaration  //GEN-END:variables
 	}
 }
