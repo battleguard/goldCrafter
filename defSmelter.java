@@ -1,12 +1,10 @@
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
@@ -16,18 +14,14 @@ import java.awt.event.KeyEvent;
 import org.rsbot.event.events.MessageEvent;
 import org.rsbot.event.listeners.MessageListener;
 import org.rsbot.event.listeners.PaintListener;
-import org.rsbot.loader.script.adapter.AddMethodAdapter.Method;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
-import org.rsbot.script.methods.Hiscores.Stats;
-import org.rsbot.script.methods.MethodProvider;
-import org.rsbot.script.methods.Methods;
 import org.rsbot.script.methods.Skills;
 import org.rsbot.script.wrappers.RSArea;
 import org.rsbot.script.wrappers.RSWeb;
 import org.rsbot.script.wrappers.RSTile;
 import org.rsbot.script.util.SkillData;
-import org.rsbot.script.methods.Calculations;
+import org.rsbot.script.util.Timer;
 
 
 @ScriptManifest(authors = "Deffiliate", name = "DefSmelter", version = 0.1, description = "Smelts your ores into perfection, flawlessly.")
@@ -134,7 +128,10 @@ public class DefSmelter extends Script implements MessageListener,
 	public enum state 
 	{
 	bank, walkToFurnace, walkToBank, smelt, checkBag, notSure
-	};			
+	};
+	
+	private static Timer runClock;
+	private NumberFormat k = new DecimalFormat("###,###,###");
 	
 	public void onRepaint(Graphics g1) 
 	{
@@ -192,10 +189,10 @@ public class DefSmelter extends Script implements MessageListener,
 			final double goldMade = barsMade * (profitPer);
 			final double goldHour = barHour * (profitPer);
 			g1.setColor(Color.LIGHT_GRAY);
-			g1.drawString(getFormattedTime(timeRan), 91, 414);
-			g1.drawString(Double.toString((int)xpGain) + "(" + Double.toString((int)xpHour) + ")", 164, 428);
-			g1.drawString(Double.toString((int)goldMade) + "(" + Double.toString((int)goldHour) + ")", 170, 442);
-			String TTL = getFormattedTime(skillData.timeToLevel(skills.SMITHING));
+			g1.drawString(runClock.toElapsedString(), 91, 414);
+			g1.drawString(k.format(xpGain) + "(" + k.format(xpHour) + ")", 164, 428);
+			g1.drawString(k.format(goldMade) + "(" + k.format(goldHour) + ")", 170, 442);
+			String TTL = getFormattedTime(skillData.timeToLevel(idx));
 			g1.drawString(TTL, 115, 456);
 		}
 		else if (display == 2){
@@ -900,31 +897,29 @@ public class DefSmelter extends Script implements MessageListener,
 	}
 
 
-	private static String getFormattedTime(final long timeMillis) 
-	{
-		long millis = timeMillis;
-		final long days = millis / (24 * 1000 * 60 * 60);
-		millis -= days * (24 * 1000 * 60 * 60);
-		final long hours = millis / (1000 * 60 * 60);
-		millis -= hours * 1000 * 60 * 60;
-		final long minutes = millis / (1000 * 60);
-		millis -= minutes * 1000 * 60;
-		final long _seconds = millis / 1000;
-		String dayString = String.valueOf(days);
-		String hoursString = String.valueOf(hours);
-		String minutesString = String.valueOf(minutes);
-		String secondsString = String.valueOf(_seconds);
-		if (hours < 10) {
-			hoursString = 0 + hoursString;
+	private static String getFormattedTime(final long time) {
+		final StringBuilder t = new StringBuilder();
+		final long total_secs = time / 1000;
+		final long total_mins = total_secs / 60;
+		final long total_hrs = total_mins / 60;
+		final int secs = (int) total_secs % 60;
+		final int mins = (int) total_mins % 60;
+		final int hrs = (int) total_hrs % 60;
+		if (hrs < 10) {
+			t.append("0");
 		}
-		if (minutes < 10) {
-			minutesString = 0 + minutesString;
+		t.append(hrs);
+		t.append(":");
+		if (mins < 10) {
+			t.append("0");
 		}
-		if (_seconds < 10) {
-			secondsString = 0 + secondsString;
+		t.append(mins);
+		t.append(":");
+		if (secs < 10) {
+			t.append("0");
 		}
-		return new String ( dayString + ":" + hoursString+":"+ minutesString +":"+
-		secondsString );
+		t.append(secs);
+		return t.toString();
 	}
 
 	public void messageReceived(MessageEvent me) 
@@ -1348,6 +1343,7 @@ public class DefSmelter extends Script implements MessageListener,
 				inventory.getItem(coalBag).interact("Inspect");
 		}
 		startTime = System.currentTimeMillis();
+		runClock = new Timer(0);
 		return true;
 	}
 
