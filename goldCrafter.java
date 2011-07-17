@@ -29,7 +29,7 @@ import org.rsbot.script.wrappers.RSTile;
 import org.rsbot.script.wrappers.RSTilePath;
 
 @ScriptManifest(authors = { "Battleguard" }, version = 2.00, description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", name = "Al Kharid AIO Gem/Gold Crafter")
-public class goldCrafter extends Script implements PaintListener,
+public class goldCrafterCleanup extends Script implements PaintListener,
 		MouseMotionListener {
 
 	private final static int FURNACE_ID = 11666, BANKBOOTH_ID = 35647;
@@ -252,7 +252,9 @@ public class goldCrafter extends Script implements PaintListener,
 			bankBooth.interact("Use-quickly Bank booth");
 			sleep(2000);
 		} else {
-			pathToFurnace.reverse().traverse();
+			pathToFurnace.reverse();
+			pathToFurnace.traverse();
+			pathToFurnace.reverse();
 		}
 	}
 
