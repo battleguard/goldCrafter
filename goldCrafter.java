@@ -7,6 +7,7 @@ import java.awt.Rectangle;
 import java.awt.event.*;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -32,17 +33,10 @@ import org.rsbot.script.wrappers.RSTilePath;
 public class goldCrafter extends Script implements PaintListener,
 		MouseMotionListener {
 
-	private final static int FURNACE_ID = 11666, BANKBOOTH_ID = 35647;
-
+	private final static int FURNACE_ID = 11666;
 	private static boolean guiWait = true;
 	private craftingGUI g = new craftingGUI();
-
-
-
-	/*
-	 * NEW CODE FOR GEM SUPPORT
-	 */
-
+	
 	private final static int RING_MOULD_ID = 1592, NECK_MOULD_ID = 1597,
 			AMMY_MOULD_ID = 1595, BRACELET_MOULD_ID = 11065;;
 	private static int MOULD_ID = RING_MOULD_ID;
@@ -58,12 +52,11 @@ public class goldCrafter extends Script implements PaintListener,
 	private static int EXP_PER = GOLD_XP;
 
 	// COMPONENTS FOR INTERFACE AT FURNACE
-	private final static int GOLD_RING_COMP = 82;// , GOLD_NECK_COMP = 68,
-													// GOLD_AMMY_COMP = 53;
+	private final static int GOLD_RING_COMP = 82;
 	private static int COMPONENT_ID = GOLD_RING_COMP;
 
 	// PRICE OF ITEM USED FOR CALCULATING PROFITS
-	private static int ITEM_PRICE, ITEM_ID;
+	private static int ITEM_PRICE;
 	private static String ITEM_NAME;
 
 	private enum State {
@@ -301,7 +294,6 @@ public class goldCrafter extends Script implements PaintListener,
 				clickOnFurnace = false;
 			}
 		}
-
 	}
 
 	/**
@@ -324,14 +316,19 @@ public class goldCrafter extends Script implements PaintListener,
 	 * Checks to see if we are ready to hit make all
 	 */
 	private boolean isInterfaceOpen() {
-		return interfaces.getComponent(446, COMPONENT_ID).isValid();
+		try {
+			return interfaces.getComponent(446, 13).getText().equals("What would you like to make?") ? true : false;
+		} catch(Exception e) {
+			log("Exception occured " + e);
+			return false;
+		}
 	}
 
 	/**
 	 * Clicks the make all button at the furnace
 	 */
 	private void makeItem() {
-		if (interfaces.getComponent(446, COMPONENT_ID).isValid()) {
+		if(isInterfaceOpen()) {
 			interfaces.getComponent(446, COMPONENT_ID).interact("Make All");
 		}
 	}
@@ -363,9 +360,10 @@ public class goldCrafter extends Script implements PaintListener,
 			return State.To_Bank;
 		}
 	}
-	
+
 	/**
-	 * dumb code because sometime the bot thinks im out of bars when im not this happened because the bot was banking so fast
+	 * dumb code because sometime the bot thinks im out of bars when im not this
+	 * happened because the bot was banking so fast
 	 */
 	void doubleCheck() {
 		for (int i = 0; i < 10; i++) {
@@ -378,6 +376,10 @@ public class goldCrafter extends Script implements PaintListener,
 		stopScript();
 
 	}
+
+	
+
+
 
 	public void onFinish() {
 		log("Thank you for using the script!");
@@ -413,6 +415,7 @@ public class goldCrafter extends Script implements PaintListener,
 	}
 
 	private static Point mouseSpot;
+
 	public void mouseDragged(MouseEvent e) {
 	}
 
@@ -425,10 +428,7 @@ public class goldCrafter extends Script implements PaintListener,
 	private final static int idx = Skills.getIndex("crafting");
 	private static Timer runClock = new Timer(0);
 	private NumberFormat k = new DecimalFormat("###,###,###");
-	
-	
 
-	
 	private final static Rectangle paintBox = new Rectangle(5, 345, 510, 130);
 
 	@Override
@@ -522,10 +522,15 @@ public class goldCrafter extends Script implements PaintListener,
 				EXP_PER += 10;
 				COMPONENT_ID -= 49;
 			}
-
-			ITEM_NAME = gem + " " + type;
-			ITEM_PRICE = grandExchange.lookup(ITEM_NAME).getGuidePrice();
-			ITEM_ID = grandExchange.getItemID(ITEM_NAME);
+			
+			//82 - 49 = component id for amulet
+			
+			if(type.equals("amulet")) {
+				ITEM_PRICE = grandExchange.lookup(1673 + (COMPONENT_ID - 53)).getGuidePrice();
+			} else {
+				ITEM_NAME = gem + " " + type;
+				ITEM_PRICE = grandExchange.lookup(ITEM_NAME).getGuidePrice();
+			}
 			log("Price of finished product" + ITEM_PRICE);
 
 			guiWait = false;
