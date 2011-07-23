@@ -33,7 +33,7 @@ import org.rsbot.script.wrappers.RSTile;
 import org.rsbot.script.wrappers.RSTilePath;
 
 @ScriptManifest(authors = { "Battleguard" }, version = 2.00, description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", name = "Al Kharid AIO Gem/Gold Crafter")
-public class goldCrafterCleanup extends Script implements PaintListener, MouseListener {
+public class goldCrafter extends Script implements PaintListener, MouseListener {
 	
 	
 	private Rectangle clickSpot = new Rectangle(116, 90, 20, 20);
