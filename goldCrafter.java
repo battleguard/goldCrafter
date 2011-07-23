@@ -2,12 +2,15 @@ import java.awt.Color;
 import java.awt.Container;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Point;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.event.*;
+import java.io.IOException;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
+import javax.imageio.ImageIO;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
@@ -29,10 +32,12 @@ import org.rsbot.script.wrappers.RSObject;
 import org.rsbot.script.wrappers.RSTile;
 import org.rsbot.script.wrappers.RSTilePath;
 
-@ScriptManifest(authors = { "Battleguard" }, version = 2.02, description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", name = "Al Kharid AIO Gem/Gold Crafter")
-public class goldCrafter extends Script implements PaintListener,
-		MouseMotionListener {
-
+@ScriptManifest(authors = { "Battleguard" }, version = 2.00, description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", name = "Al Kharid AIO Gem/Gold Crafter")
+public class goldCrafterCleanup extends Script implements PaintListener, MouseListener {
+	
+	
+	private Rectangle clickSpot = new Rectangle(116, 90, 20, 20);
+	
 	private final static int FURNACE_ID = 11666;
 	private static boolean guiWait = true;
 	private craftingGUI g = new craftingGUI();
@@ -123,6 +128,7 @@ public class goldCrafter extends Script implements PaintListener,
 		}
 		return random(75, 150);
 	}
+	
 
 	/**
 	 * Withdrawals 27 gold bars and will also withdrawal the appropriate mould
@@ -321,7 +327,7 @@ public class goldCrafter extends Script implements PaintListener,
 		} catch(Exception e) {
 			log("Exception occured " + e);
 			return false;
-		}
+		}		
 	}
 
 	/**
@@ -329,7 +335,9 @@ public class goldCrafter extends Script implements PaintListener,
 	 */
 	private void makeItem() {
 		if(isInterfaceOpen()) {
-			interfaces.getComponent(446, COMPONENT_ID).interact("Make All");
+			mouse.click(clickSpot.getLocation(), false);
+			menu.doAction("Make All");
+			//interfaces.getComponent(446, COMPONENT_ID).interact("Make All");
 		}
 	}
 
@@ -374,6 +382,9 @@ public class goldCrafter extends Script implements PaintListener,
 		}
 		log("you are out of bars or gems");
 		stopScript();
+		
+		
+
 
 	}
 
@@ -414,39 +425,115 @@ public class goldCrafter extends Script implements PaintListener,
 		}
 	}
 
-	private static Point mouseSpot;
-
-	public void mouseDragged(MouseEvent e) {
-	}
-
-	@Override
-	public void mouseMoved(MouseEvent e) {
-		mouseSpot = e.getPoint();
-	}
-
 	private static SkillData skillData = null;
 	private final static int idx = Skills.getIndex("crafting");
 	private static Timer runClock = new Timer(0);
 	private NumberFormat k = new DecimalFormat("###,###,###");
+	private Timer noXPTimer;
 
 	private final static Rectangle paintBox = new Rectangle(5, 345, 510, 130);
+	private static int oldXP;
 
+	
+    //START: Code generated using Enfilade's Easel
+    private Image getImage(String url) {
+        try {
+            return ImageIO.read(new URL(url));
+        } catch(IOException e) {
+            return null;
+        }
+    }
+	
+
+    
+	private final Rectangle TAB1_BOX = new Rectangle(25, 360, 120, 29);
+	private final Rectangle TAB2_BOX = new Rectangle(170, 360, 120, 29);
+	private final Rectangle TAB3_BOX = new Rectangle(316, 360, 120, 29);
+	private final Rectangle HIDE_BOX = new Rectangle(413, 439, 92, 21);
+	
+
+    private final Image experience = getImage("http://i.imgur.com/HDHbP.png");
+    private final Image profit = getImage("http://i.imgur.com/al5T1.png");
+    private final Image overall = getImage("http://i.imgur.com/mLlyR.png");
+    private final Image hide = getImage("http://i.imgur.com/AoJP6.png");
+    private final Image percentBar = getImage("http://i.imgur.com/KRaWK.png");
+
+	private enum Curpaint {
+		TAB1, TAB2, TAB3
+	};
+	
+	private boolean hidePaint = false;
+
+	private Curpaint SHOWING_TAB = Curpaint.TAB3;
+	
 	@Override
 	public void onRepaint(Graphics g) {
 		if (skillData == null) {
 			skillData = skills.getSkillDataInstance();
 		}
-		if (paintBox.contains(mouseSpot)) {
-			return;
+		
+		if(oldXP != skillData.exp(idx)) {
+			noXPTimer = new Timer(2 * 60 * 1000);
 		}
-
+		if(!noXPTimer.isRunning()) {			
+			log("We have not got any XP for 2 minutes, state = " + getState());
+		}
+		
+		final double lvlGain = skillData.levelsGained(idx);
 		final double xpGain = skillData.expGain(idx);
 		final double xpHour = skillData.hourlyExp(idx);
 		final double itemsMade = xpGain / EXP_PER;
 		final double itemsHour = xpHour / EXP_PER;
 		final double goldMade = itemsMade * ITEM_PRICE;
 		final double goldHour = itemsHour * ITEM_PRICE;
+		final int percent = skills.getPercentToNextLevel(Skills.CRAFTING);
+		final double xpTNL = skillData.expToLevel(idx) % 1000;
+		
+		g.setFont(new Font("Gayatri", Font.BOLD, 16));
+		g.setColor(Color.BLACK);
+		
+		if(hidePaint) {
+			g.drawImage(hide, 0, 300, null);
+			return;
+		}
 
+		
+		switch (SHOWING_TAB) {
+		case TAB1: 
+			g.drawImage(experience, 0, 302, null);
+			g.drawString(Timer.format(skillData.timeToLevel(idx)), 141, 438);
+			g.drawString(k.format(lvlGain), 370, 437);
+			int barWidth = (percent * percentBar.getWidth(null)) / 100;
+			g.setColor(Color.YELLOW);
+			g.drawImage(percentBar, 72, 401, barWidth, percentBar.getHeight(null), null);		
+			g.setColor(Color.WHITE);
+			g.setFont(new Font("Gayatri", Font.BOLD, 11));
+			g.drawString(percent + "% to " + (skills.getCurrentLevel(idx)+ 1) + " Crafting ( " + k.format(xpTNL) + "k XP till Level)", 140, 412);
+			g.setFont(new Font("Gayatri", Font.BOLD, 16));
+			g.setColor(Color.BLACK);
+			break;
+		case TAB2: 
+			g.drawImage(profit, 0, 302, null);
+			g.drawString(k.format(goldMade) + "gp", 126, 415);
+			g.drawString(k.format(goldHour) + "gp", 167, 435);
+			
+			break;
+		case TAB3: 
+			g.drawImage(overall, 0, 302, null);
+			// IMAGE SIZE = 5 x 294, 530 x 181			
+			g.drawString(k.format(xpGain), 180, 416);
+			g.drawString(k.format(xpHour), 167, 435);
+			g.drawString(k.format(itemsMade), 348, 413);
+			g.drawString(k.format(itemsHour), 346, 435);
+			break;
+		}
+		g.drawString("" + curState, 141, 455);
+		g.drawString(runClock.toElapsedString(), 286, 457);
+		
+
+		
+		
+		/*
 		// PAINT SETUP
 		g.setColor(Color.BLACK);
 		g.setFont(new Font("Bodoni MT", 0, 13));
@@ -474,8 +561,11 @@ public class goldCrafter extends Script implements PaintListener,
 		g.drawString("Cur lvl: " + skills.getCurrentLevel(Skills.CRAFTING)
 				+ "  " + skills.getPercentToNextLevel(Skills.CRAFTING) + "%",
 				220, 464);
+		 */
 	}
 
+
+	
 	/**
 	 * Class that handles the GUI Finds the COMPONENT_ID, MOULD_ID, EXP_PER that
 	 * we will be using
@@ -486,44 +576,58 @@ public class goldCrafter extends Script implements PaintListener,
 		public craftingGUI() {
 			initComponents();
 		}
+		
+
 
 		private void button1ActionPerformed(ActionEvent e) {
 			String gem = gemSelected.getSelectedItem().toString();
 			String type = typeSelected.getSelectedItem().toString();
-
+			
+			int shiftX = 50;
+			if(type.equals("ring")) {
+				clickSpot.x = 104;
+				shiftX = 45;
+			}
+			
 			if (gem.equals("Sapphire")) {
+				clickSpot.x += shiftX;
 				GEM_ID = SAPPHIRE_ID;
 				EXP_PER = SAPPHIRE_XP;
 				COMPONENT_ID += 2;
 			} else if (gem.equals("Emerald")) {
+				clickSpot.x += (shiftX * 2);
 				GEM_ID = EMERALD_ID;
 				EXP_PER = EMERALD_XP;
 				COMPONENT_ID += 4;
 			} else if (gem.equals("Ruby")) {
+				clickSpot.x += (shiftX * 3);
 				GEM_ID = RUBY_ID;
 				EXP_PER = RUBY_XP;
 				COMPONENT_ID += 6;
 			} else if (gem.equals("Diamond")) {
+				clickSpot.x += (shiftX * 4);
 				GEM_ID = DIAMOND_ID;
 				EXP_PER = DIAMOND_XP;
 				COMPONENT_ID += 8;
 			}
 
 			if (type.equals("necklace")) {
+				clickSpot.y += 62;
 				MOULD_ID = NECK_MOULD_ID;
 				EXP_PER += 5;
 				COMPONENT_ID -= 14;
 			} else if (type.equals("amulet")) {
+				clickSpot.y += 124;				
 				MOULD_ID = AMMY_MOULD_ID;
 				EXP_PER += 15;
 				COMPONENT_ID -= 29;
 			} else if (type.equals("bracelet")) {
+				clickSpot.y += 183;		
 				MOULD_ID = BRACELET_MOULD_ID;
 				EXP_PER += 10;
 				COMPONENT_ID -= 49;
 			}
 			
-			//82 - 49 = component id for amulet
 			
 			if(type.equals("amulet")) {
 				ITEM_PRICE = grandExchange.lookup(1673 + (COMPONENT_ID - 53)).getGuidePrice();
@@ -690,5 +794,45 @@ public class goldCrafter extends Script implements PaintListener,
 		private JLabel label3;
 		private JComboBox typeSelected;
 		// JFormDesigner - End of variables declaration //GEN-END:variables
+	}
+
+
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		if(HIDE_BOX.contains(e.getPoint())) {
+			hidePaint ^= true;
+		}		
+		if (TAB1_BOX.contains(e.getPoint())) {
+			SHOWING_TAB = Curpaint.TAB1;
+		} else if (TAB2_BOX.contains(e.getPoint())) {
+			SHOWING_TAB = Curpaint.TAB2;
+		} else if (TAB3_BOX.contains(e.getPoint())) {
+			SHOWING_TAB = Curpaint.TAB3;
+		}	
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 }
