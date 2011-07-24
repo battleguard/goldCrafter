@@ -32,7 +32,7 @@ import org.rsbot.script.wrappers.RSObject;
 import org.rsbot.script.wrappers.RSTile;
 import org.rsbot.script.wrappers.RSTilePath;
 
-@ScriptManifest(authors = { "Battleguard" }, version = 2.00, description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", name = "Al Kharid AIO Gem/Gold Crafter")
+@ScriptManifest(authors = { "Battleguard" }, version = 2.04, description = "Al Kharid AIO Gem/Gold Crafter, by Battleguard", name = "Al Kharid AIO Gem/Gold Crafter")
 public class goldCrafter extends Script implements PaintListener, MouseListener {
 	
 	
