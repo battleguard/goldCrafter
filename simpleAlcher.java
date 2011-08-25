@@ -5,8 +5,11 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JTextField;
@@ -15,31 +18,39 @@ import org.rsbot.event.listeners.MessageListener;
 import org.rsbot.event.listeners.PaintListener;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
+import org.rsbot.script.methods.GrandExchange.GEItem;
 import org.rsbot.script.methods.Magic;
 import org.rsbot.script.methods.Skills;
 import org.rsbot.script.methods.Game.Tab;
 import org.rsbot.script.util.SkillData;
 import org.rsbot.script.util.Timer;
 import org.rsbot.script.wrappers.RSComponent;
+import org.rsbot.script.wrappers.RSItem;
 
-@ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 1.0, description = "simple alcher, by battleguard")
+@ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 2.0, description = "simple alcher, by battleguard")
 public class simpleAlcher extends Script implements PaintListener,
 		MessageListener {
 
 	private static boolean HIGH_ALCH = true;
 	private Timer resetTimer = null;
-	private static int ITEM_ID, NATURE_RUNE_PRICE, ITEM_PRICE, ALCH_AMOUNT,
-			alchXP = 65;
-	private static Rectangle intersection;
-	private static boolean guiWait = true;
+	private static int ITEM_ID, NATURE_RUNE_PRICE, ITEM_PRICE, ALCH_AMOUNT, alchXP = 65;
+	private static Rectangle intersection = new Rectangle(0 , 0);
+	private static boolean guiWait = true, START_UP = true;
 	private final alchGUI g = new alchGUI();
 
 	public boolean onStart() {
 		while (guiWait)
 			sleep(500);
+		if(!START_UP) {
+			return false;
+		}
 
-		NATURE_RUNE_PRICE = grandExchange.lookup(561).getGuidePrice();
-		ITEM_PRICE = grandExchange.lookup(ITEM_ID - 1).getGuidePrice();
+		NATURE_RUNE_PRICE = grandExchange.lookup(561).getGuidePrice();		
+		GEItem itemInfo = grandExchange.lookup(ITEM_ID);
+		if(itemInfo == null) {
+			itemInfo = grandExchange.lookup(ITEM_ID - 1);
+		}		
+		ITEM_PRICE = itemInfo.getGuidePrice();
 
 		if (skills.getCurrentLevel(Skills.MAGIC) < 55) {
 			alchXP = 31;
@@ -53,24 +64,35 @@ public class simpleAlcher extends Script implements PaintListener,
 
 		// move the alch item and alch spot to the same spot
 		RSComponent alchItem = inventory.getItem(ITEM_ID).getComponent();
-		RSComponent alchSpot;
-		if (HIGH_ALCH)
-			alchSpot = magic.getInterface().getComponent(
-					Magic.SPELL_HIGH_LEVEL_ALCHEMY);
-		else
-			alchSpot = magic.getInterface().getComponent(
-					Magic.SPELL_LOW_LEVEL_ALCHEMY);
-
+		game.openTab(Tab.MAGIC);
+		sleep(1000);
+		final RSComponent alchSpot = HIGH_ALCH ? magic.getInterface().getComponent(Magic.SPELL_HIGH_LEVEL_ALCHEMY) : 
+					magic.getInterface().getComponent(Magic.SPELL_LOW_LEVEL_ALCHEMY);
+		
 		game.openTab(Tab.INVENTORY);
 		sleep(1000);
-		if (!alchSpot.getArea().intersects(alchItem.getArea())) {
-			mouse.move(alchItem.getPoint());
-			sleep(200);
-			mouse.drag(alchSpot.getPoint());
+		RSComponent [] invComp = interfaces.getComponent(679, 0).getComponents();
+		RSComponent bestSlot = null;
+		
+		for(int i = 0; i < 27; i++) {
+			if(invComp[i].getArea().intersects(alchSpot.getArea())) {
+				final Rectangle spot = invComp[i].getArea().intersection(alchSpot.getArea());
+				if((spot.width * spot.height) > (intersection.width * intersection.height)) {
+					bestSlot = invComp[i];
+					intersection = spot;
+					log("Inventory slot " + i + " is new best slot");
+				}							
+			}
 		}
-		sleep(1000);
-		alchItem = inventory.getItem(ITEM_ID).getComponent();
-		intersection = alchSpot.getArea().intersection(alchItem.getArea());
+		
+		if(bestSlot == null) {
+			log("Problem moving item to alch spot");
+			return false;
+		}
+		alchItem.interact("Use " + alchItem.getText());
+		sleep(200);
+		mouse.drag(bestSlot.getPoint());
+		
 
 		// GET AMOUNT OF MONEY PER EACH ALCH
 		final int oldMoney = inventory.getItem(995).getStackSize();
@@ -80,7 +102,9 @@ public class simpleAlcher extends Script implements PaintListener,
 		sleep(1000);
 		ALCH_AMOUNT = inventory.getItem(995).getStackSize() - oldMoney;
 		ALCH_AMOUNT -= NATURE_RUNE_PRICE + ITEM_PRICE;
-
+		
+		skillData = skills.getSkillDataInstance();
+		runClock = new Timer(0);
 		return true;
 	}
 
@@ -109,7 +133,7 @@ public class simpleAlcher extends Script implements PaintListener,
 
 		@Override
 		public void run() {
-			int i = random(0, 100);
+			final int i = random(0, 100);
 			if (i == 50) {
 				camera.setAngle(random(0, 360));
 				camera.setPitch(random(20, 100));
@@ -133,14 +157,10 @@ public class simpleAlcher extends Script implements PaintListener,
 
 	@Override
 	public void onRepaint(Graphics g) {
-
-		if (skillData == null) {
-			skillData = skills.getSkillDataInstance();
-			runClock = new Timer(0);
-		}
-
 		g.setColor(Color.BLACK);
 		g.fill3DRect(0, 0, 600, 30, true);
+		g.setColor(Color.RED);
+		g.fillRect(intersection.x, intersection.y, intersection.width, intersection.height);
 		g.setColor(Color.WHITE);
 
 		final double xp = skillData.expGain(Skills.MAGIC);
@@ -161,33 +181,50 @@ public class simpleAlcher extends Script implements PaintListener,
 
 	public class alchGUI extends JFrame {
 		private static final long serialVersionUID = 1L;
-		JButton startButton = new JButton("Enter ID or Name and hit button");
-		JTextField textField1 = new JTextField("", 10);
-
+		final JButton startButton = new JButton("Enter ID or Name and hit button");
+		final JTextField textField1 = new JTextField("", 10);
+	
 		public alchGUI() {
 			super("Simple Alcher");
-
+			
+			addWindowListener(new WindowAdapter() {
+				public void windowClosing(WindowEvent e) {
+					START_UP = false;
+					guiWait = false;
+					log("Cancelling Startup of script");
+					g.dispose();
+				}
+			});
+			
 			getContentPane().setLayout(new FlowLayout());
 			getContentPane().add(textField1);
 			getContentPane().add(startButton);
-
 			startButton.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
+					RSItem item = null; 
+					
 					try {
 						ITEM_ID = Integer.parseInt(textField1.getText());
+						item = inventory.getItem(ITEM_ID);
 					} catch (Exception exc) {
-						ITEM_ID = inventory.getItem(textField1.getText())
-								.getID();
+						item = inventory.getItem(textField1.getText());	
 					}
-
-					guiWait = false;
-					g.dispose();
+					
+					if(item != null) {							
+						ITEM_ID = item.getID();
+						if(ITEM_ID > 0) {
+							guiWait = false;
+							g.dispose();
+							return;
+						}
+					}			
+					log("You have entered the wrong item name or item id");
 				}
 			});
 			setLocationRelativeTo(getOwner());
 			setSize(450, 70);
-			setVisible(true);
+			setVisible(true);			
 		}
 	}
 
