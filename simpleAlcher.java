@@ -1,6 +1,8 @@
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -10,8 +12,12 @@ import java.awt.event.WindowEvent;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
+import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import org.rsbot.event.events.MessageEvent;
 import org.rsbot.event.listeners.MessageListener;
@@ -36,9 +42,21 @@ public class simpleAlcher extends Script implements PaintListener,
 	private static int ITEM_ID, NATURE_RUNE_PRICE, ITEM_PRICE, ALCH_AMOUNT, alchXP = 65;
 	private static Rectangle intersection = new Rectangle(0 , 0);
 	private static boolean guiWait = true, START_UP = true;
-	private final alchGUI g = new alchGUI();
-
+	private alchGUI g = null;
+	String [] items = null;
+	
 	public boolean onStart() {
+		game.openTab(Tab.INVENTORY);
+		RSItem [] invItems = inventory.getItems();
+		items = new String[inventory.getCount()];
+		int counter = 0;
+		for(int i = 0; i < invItems.length; i++) {
+			if(!invItems[i].getName().equals("")) {
+				items[counter++] = invItems[i].getName();
+			}
+		}
+		g = new alchGUI();
+		
 		while (guiWait)
 			sleep(500);
 		if(!START_UP) {
@@ -80,7 +98,6 @@ public class simpleAlcher extends Script implements PaintListener,
 				if((spot.width * spot.height) > (intersection.width * intersection.height)) {
 					bestSlot = invComp[i];
 					intersection = spot;
-					log("Inventory slot " + i + " is new best slot");
 				}							
 			}
 		}
@@ -181,8 +198,8 @@ public class simpleAlcher extends Script implements PaintListener,
 
 	public class alchGUI extends JFrame {
 		private static final long serialVersionUID = 1L;
-		final JButton startButton = new JButton("Enter ID or Name and hit button");
-		final JTextField textField1 = new JTextField("", 10);
+		JButton startButton = new JButton("Start");
+		JComboBox itemsList = new JComboBox(items);
 	
 		public alchGUI() {
 			super("Simple Alcher");
@@ -196,35 +213,25 @@ public class simpleAlcher extends Script implements PaintListener,
 				}
 			});
 			
-			getContentPane().setLayout(new FlowLayout());
-			getContentPane().add(textField1);
-			getContentPane().add(startButton);
 			startButton.addActionListener(new ActionListener() {
 				@Override
-				public void actionPerformed(ActionEvent e) {
-					RSItem item = null; 
-					
-					try {
-						ITEM_ID = Integer.parseInt(textField1.getText());
-						item = inventory.getItem(ITEM_ID);
-					} catch (Exception exc) {
-						item = inventory.getItem(textField1.getText());	
-					}
-					
-					if(item != null) {							
-						ITEM_ID = item.getID();
-						if(ITEM_ID > 0) {
-							guiWait = false;
-							g.dispose();
-							return;
-						}
-					}			
-					log("You have entered the wrong item name or item id");
+				public void actionPerformed(ActionEvent e) {					
+					ITEM_ID = inventory.getItemID(itemsList.getSelectedItem().toString());
+					guiWait = false;
+					g.dispose();
 				}
 			});
-			setLocationRelativeTo(getOwner());
-			setSize(450, 70);
-			setVisible(true);			
+			
+			itemsList.setPreferredSize(new Dimension(150, 25));
+			startButton.setPreferredSize(new Dimension(100, 25));
+			
+			getContentPane().setLayout(new FlowLayout(FlowLayout.LEFT, 20, 5));			
+			getContentPane().add(itemsList);
+			getContentPane().add(startButton);			
+	        
+			setLocationRelativeTo(getOwner());	        
+			pack();	        
+			setVisible(true);		
 		}
 	}
 
