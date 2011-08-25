@@ -176,8 +176,6 @@ public class simpleAlcher extends Script implements PaintListener,
 	public void onRepaint(Graphics g) {
 		g.setColor(Color.BLACK);
 		g.fill3DRect(0, 0, 600, 30, true);
-		g.setColor(Color.RED);
-		g.fillRect(intersection.x, intersection.y, intersection.width, intersection.height);
 		g.setColor(Color.WHITE);
 
 		final double xp = skillData.expGain(Skills.MAGIC);
