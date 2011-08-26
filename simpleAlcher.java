@@ -31,7 +31,6 @@ import org.rsbot.script.wrappers.RSItem;
 
 
 
-
 @ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 3.0, description = "simple alcher, by battleguard")
 public class simpleAlcher extends Script implements PaintListener,
 		MessageListener {
@@ -61,13 +60,12 @@ public class simpleAlcher extends Script implements PaintListener,
 			return false;
 		}
 		skillData = skills.getSkillDataInstance();
-		runClock = new Timer(0);
 		return getPlace();
 	}
 	
 	public void onFinish(){
-		if(runClock.getElapsed() > 10 * 60 * 1000) {
-			log(getStats());
+		if(runClock.getElapsed() > 1 * 60 * 1000) {
+			log(getStats().replaceAll("  ", " "));
 		}			
 	}
 	
@@ -134,6 +132,10 @@ public class simpleAlcher extends Script implements PaintListener,
 
 	@Override
 	public int loop() {
+		if(runClock == null) {
+			runClock = new Timer(0);
+		}
+		
 		if(!HIGH_ALCH && skills.getCurrentLevel(Skills.MAGIC) > 54) {
 			getPlace();
 		}
@@ -189,15 +191,17 @@ public class simpleAlcher extends Script implements PaintListener,
 	
 	@Override
 	public void onRepaint(Graphics g) {
-		g.setColor(Color.BLACK);
-		g.fill3DRect(0, 0, 600, 30, true);
-		g.setColor(Color.WHITE);
-
+		g.setColor(Color.BLACK);		
+		g.fill3DRect(0, 0, 600, 50, true);
+		g.setColor(Color.RED);
+		g.fill3DRect(50, 30, 450, 10, true);
+		g.setColor(Color.GREEN);
+		g.fill3DRect(50, 30, (int) (skillData.percentToLevel(Skills.MAGIC) * 4.5), 10, true);
+		g.setColor(Color.WHITE);		
 		xp = skillData.expGain(Skills.MAGIC);
 		xpH = skillData.hourlyExp(Skills.MAGIC);
 		alchs = xp / alchXP;
 		alchsH = xpH / alchXP;
-
 		g.drawString(getStats(), 20, 20);
 
 	}
@@ -261,7 +265,7 @@ public class simpleAlcher extends Script implements PaintListener,
 	}
 
 	@Override
-	public void messageReceived(MessageEvent e) {
+	public void messageReceived(MessageEvent e) {		
 		if ((e.getMessage().equals(
 				"You do not have enough Nature Runes to cast this spell.")
 				|| e.getMessage()
