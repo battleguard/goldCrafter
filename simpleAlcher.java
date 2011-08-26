@@ -64,7 +64,7 @@ public class simpleAlcher extends Script implements PaintListener,
 	}
 	
 	public void onFinish(){
-		if(runClock.getElapsed() > 1 * 60 * 1000) {
+		if(runClock.getElapsed() > 10 * 60 * 1000) {
 			log(getStats().replaceAll("  ", " "));
 		}			
 	}
