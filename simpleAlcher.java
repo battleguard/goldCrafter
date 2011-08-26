@@ -84,6 +84,9 @@ public class simpleAlcher extends Script implements PaintListener,
 		if (skills.getCurrentLevel(Skills.MAGIC) < 55) {
 			alchXP = 31;
 			HIGH_ALCH = false;
+		} else {
+			HIGH_ALCH = true;
+			alchXP = 65;
 		}
 
 		if (skills.getCurrentLevel(Skills.MAGIC) < 21) {
