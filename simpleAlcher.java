@@ -594,7 +594,7 @@ public class simpleAlcher extends Script implements PaintListener,
 		final int height = 32;
 			
 		public alchGUI() {
-			super("Simple Alcher with images");
+			super("Simple Alcher");
 			
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent e) {
