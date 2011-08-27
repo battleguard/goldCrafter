@@ -21,9 +21,10 @@ import org.rsbot.event.listeners.MessageListener;
 import org.rsbot.event.listeners.PaintListener;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
-import org.rsbot.script.methods.Magic;
+import org.rsbot.script.methods.Magic.Book;
 import org.rsbot.script.methods.Skills;
 import org.rsbot.script.methods.Game.Tab;
+import org.rsbot.script.methods.Magic.Spell;
 import org.rsbot.script.util.SkillData;
 import org.rsbot.script.util.Timer;
 import org.rsbot.script.wrappers.RSComponent;
@@ -31,13 +32,12 @@ import org.rsbot.script.wrappers.RSItem;
 
 
 
-@ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 3.0, description = "simple alcher, by battleguard")
+@ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 3.1, description = "simple alcher, by battleguard")
 public class simpleAlcher extends Script implements PaintListener,
 		MessageListener {
-
-	private static boolean HIGH_ALCH = true;
+	
+	private Spell alchSpell = Spell.HIGH_LEVEL_ALCHEMY;
 	private Timer resetTimer = null;
-	private static int alchXP = 65;
 	private static Rectangle intersection = new Rectangle(0 , 0);
 	private static boolean guiWait = true, START_UP = true;
 	private alchGUI g = null;
@@ -48,7 +48,7 @@ public class simpleAlcher extends Script implements PaintListener,
 		game.openTab(Tab.INVENTORY);
 		final RSItem [] invItems = inventory.getItems(true);
 		for(int i = 0; i < invItems.length; i++) {
-			if(invItems[i].getID() > 0 && invItems[i].getID() != 995 && !invItems[i].getName().endsWith("rune")) {
+			if(invItems[i].getID() > 0 && invItems[i].getID() != 995 && !invItems[i].getName().endsWith("rune") && invItems[i].getStackSize() > 1) {
 				alchItems.add(invItems[i]);				
 			}
 		}		
@@ -60,50 +60,58 @@ public class simpleAlcher extends Script implements PaintListener,
 			return false;
 		}
 		skillData = skills.getSkillDataInstance();
-		return getPlace();
+		return setupItem();
 	}
 	
 	public void onFinish(){
-		if(runClock.getElapsed() > 10 * 60 * 1000) {
+		if(runClock.getElapsed() > 1 * 60 * 1000) {
 			log(getStats().replaceAll("  ", " "));
 		}			
 	}
 	
-	public boolean getPlace() {
-		if(alchItems.isEmpty()) {
-			log("out of items");
+	public boolean setupItem() {		
+		if(alchItems.isEmpty() || !magic.getCurrentSpellBook().equals(Book.MODERN)) {
+			log("out of items or wrong book");
 			return false;
 		}
-		if(!inventory.containsOneOf(alchItems.get(0).getID())) {
-			alchItems.remove(0);
-			return getPlace();
-		}
-		itemname = alchItems.get(0).getName();
-		if (skills.getCurrentLevel(Skills.MAGIC) < 55) {
-			alchXP = 31;
-			HIGH_ALCH = false;
-		} else {
-			HIGH_ALCH = true;
-			alchXP = 65;
-		}
-
-		if (skills.getCurrentLevel(Skills.MAGIC) < 21) {
-			log("Magic level too low");
-			return false;
-		}
-
-		intersection = new Rectangle(0 , 0);
-		RSComponent alchItem = inventory.getItem(alchItems.get(0).getID()).getComponent();
+		
 		game.openTab(Tab.MAGIC);
-		sleep(1000);
-		final RSComponent alchSpot = HIGH_ALCH ? magic.getInterface().getComponent(Magic.SPELL_HIGH_LEVEL_ALCHEMY) : 
-					magic.getInterface().getComponent(Magic.SPELL_LOW_LEVEL_ALCHEMY);
+		final RSComponent alchSpells = interfaces.getComponent(192, 11);
+		final RSComponent [] scrollComp = interfaces.getComponent(192, 94).getComponents();
+		if(alchSpells.getTextureID() == 1701) {
+			mouse.click(alchSpells.getPoint(), true);
+			sleep(1000);
+		}
+		if(scrollComp.length > 0) {
+			if(scrollComp[0].getArea().y != scrollComp[1].getArea().y) {
+				mouse.move(scrollComp[1].getPoint());
+				sleep(200);				
+				mouse.click(scrollComp[1].getPoint(), true);
+				sleep(200);
+				mouse.drag(scrollComp[2].getPoint());				
+			}
+		}		
+		intersection = new Rectangle(0 , 0);		
+		itemname = alchItems.get(0).getName();
 		
-		game.openTab(Tab.INVENTORY);
-		sleep(1000);
-		RSComponent [] invComp = interfaces.getComponent(679, 0).getComponents();
-		RSComponent bestSlot = null;
-		
+		if(skills.getCurrentLevel(Skills.MAGIC) < 21) {
+			log("Magic lvl is too low");
+			return false;
+		}
+		alchSpell = (skills.getCurrentLevel(Skills.MAGIC) < 55) ? Spell.LOW_LEVEL_ALCHEMY : Spell.HIGH_LEVEL_ALCHEMY;	
+		if(!magic.hoverSpell(alchSpell)) {
+			log("Please make sure " + alchSpell.getName() + " is visible");
+			return false;
+		}
+		final RSComponent alchSpot = magic.getInterface().getComponent(alchSpell.getComponent());
+		final RSComponent alchItem = inventory.getItem(alchItems.get(0).getID()).getComponent(); // GET ALCHITEM COMP
+		final RSComponent [] invComp = interfaces.getComponent(679, 0).getComponents();
+		if(!inventory.containsOneOf(alchItems.get(0).getID())) { // OUT OF ITEM
+			alchItems.remove(0);
+			return setupItem();
+		}
+
+		RSComponent bestSlot = null;		
 		for(int i = 0; i < 27; i++) {
 			if(invComp[i].getArea().intersects(alchSpot.getArea())) {
 				final Rectangle spot = invComp[i].getArea().intersection(alchSpot.getArea());
@@ -118,6 +126,7 @@ public class simpleAlcher extends Script implements PaintListener,
 			log("Problem moving item to alch spot");
 			return false;
 		}
+		
 		if(!alchItem.equals(bestSlot)) {
 			alchItem.interact("Use " + alchItem.getText());
 			sleep(200);
@@ -136,8 +145,8 @@ public class simpleAlcher extends Script implements PaintListener,
 			runClock = new Timer(0);
 		}
 		
-		if(!HIGH_ALCH && skills.getCurrentLevel(Skills.MAGIC) > 54) {
-			getPlace();
+		if(alchSpell.equals(Spell.LOW_LEVEL_ALCHEMY) && skills.getCurrentLevel(Skills.MAGIC) > 54) {
+			setupItem();
 		}
 		
 		if (resetTimer == null || !resetTimer.isRunning()) {
@@ -151,7 +160,7 @@ public class simpleAlcher extends Script implements PaintListener,
 		} else {
 			if (inventory.getCount(alchItems.get(0).getID()) == 0) {
 				alchItems.remove(0);
-				if (!getPlace()) {
+				if (!setupItem()) {
 					stopScript();
 				}
 			}
@@ -200,8 +209,8 @@ public class simpleAlcher extends Script implements PaintListener,
 		g.setColor(Color.WHITE);		
 		xp = skillData.expGain(Skills.MAGIC);
 		xpH = skillData.hourlyExp(Skills.MAGIC);
-		alchs = xp / alchXP;
-		alchsH = xpH / alchXP;
+		alchs = xp / alchSpell.getExperience();
+		alchsH = xpH / alchSpell.getExperience();
 		g.drawString(getStats(), 20, 20);
 
 	}
@@ -250,6 +259,8 @@ public class simpleAlcher extends Script implements PaintListener,
 					g.dispose();
 				}
 			});
+			
+			
 			
 			getContentPane().setLayout(new GridLayout(itemCheckbox.length + 2, 1));
 			getContentPane().setPreferredSize(new Dimension( width, height * (itemCheckbox.length + 2)));
