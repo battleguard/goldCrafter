@@ -77,73 +77,80 @@ public class simpleAlcher extends Script implements PaintListener,
 		}			
 	}
 	
-	public boolean setupItem() {		
-		if(alchItems.isEmpty() || !magic.getCurrentSpellBook().equals(Book.MODERN)) {
-			log("out of items or wrong book");
-			return false;
-		}
-		
-		game.openTab(Tab.MAGIC);
-		final RSComponent alchSpells = interfaces.getComponent(192, 11);
-		final RSComponent [] scrollComp = interfaces.getComponent(192, 94).getComponents();
-		if(alchSpells.getTextureID() == 1701) {
-			mouse.click(alchSpells.getPoint(), true);
-			sleep(1000);
-		}
-		if(scrollComp.length > 0) {
-			if(scrollComp[0].getArea().y != scrollComp[1].getArea().y) {
-				mouse.move(scrollComp[1].getPoint());
-				sleep(200);				
-				mouse.click(scrollComp[1].getPoint(), true);
-				sleep(200);
-				mouse.drag(scrollComp[2].getPoint());				
+	private static int counter = 0;
+	public boolean setupItem() {
+		try {
+			game.openTab(Tab.MAGIC);
+			if(alchItems.isEmpty() || !magic.getCurrentSpellBook().equals(Book.MODERN)) {
+				log("out of items or wrong book");
+				return false;
+			}			
+			final RSComponent alchSpells = interfaces.getComponent(192, 11);
+			final RSComponent [] scrollComp = interfaces.getComponent(192, 94).getComponents();
+			if(alchSpells.getTextureID() == 1701) {
+				mouse.click(alchSpells.getPoint(), true);
+				sleep(1000);
 			}
-		}		
-		intersection = new Rectangle(0 , 0);		
-		itemname = alchItems.get(0).getName();
-		
-		if(skills.getCurrentLevel(Skills.MAGIC) < 21) {
-			log("Magic lvl is too low");
-			return false;
-		}
-		alchSpell = (skills.getCurrentLevel(Skills.MAGIC) < 55) ? Spell.LOW_LEVEL_ALCHEMY : Spell.HIGH_LEVEL_ALCHEMY;	
-		if(!magic.hoverSpell(alchSpell)) {
-			log("Please make sure " + alchSpell.getName() + " is visible");
-			return false;
-		}
-		final RSComponent alchSpot = magic.getInterface().getComponent(alchSpell.getComponent());
-		final RSComponent alchItem = inventory.getItem(alchItems.get(0).getID()).getComponent(); // GET ALCHITEM COMP
-		final RSComponent [] invComp = interfaces.getComponent(679, 0).getComponents();
-		if(!inventory.containsOneOf(alchItems.get(0).getID())) { // OUT OF ITEM
-			alchItems.remove(0);
-			return setupItem();
-		}
+			if(scrollComp.length > 0) {
+				if(scrollComp[0].getArea().y != scrollComp[1].getArea().y) {
+					mouse.move(scrollComp[1].getPoint());
+					sleep(200);				
+					mouse.click(scrollComp[1].getPoint(), true);
+					sleep(200);
+					mouse.drag(scrollComp[2].getPoint());				
+				}
+			}		
+			intersection = new Rectangle(0 , 0);		
+			itemname = alchItems.get(0).getName();
+			
+			if(skills.getCurrentLevel(Skills.MAGIC) < 21) {
+				log("Magic lvl is too low");
+				return false;
+			}
+			alchSpell = (skills.getCurrentLevel(Skills.MAGIC) < 55) ? Spell.LOW_LEVEL_ALCHEMY : Spell.HIGH_LEVEL_ALCHEMY;	
+			if(!magic.hoverSpell(alchSpell)) {
+				log("Please make sure " + alchSpell.getName() + " is visible");
+				return false;
+			}
+			final RSComponent alchSpot = magic.getInterface().getComponent(alchSpell.getComponent());
+			final RSComponent alchItem = inventory.getItem(alchItems.get(0).getID()).getComponent(); // GET ALCHITEM COMP
+			final RSComponent [] invComp = interfaces.getComponent(679, 0).getComponents();
+			if(!inventory.containsOneOf(alchItems.get(0).getID())) { // OUT OF ITEM
+				alchItems.remove(0);
+				return setupItem();
+			}
 
-		RSComponent bestSlot = null;		
-		for(int i = 0; i < 27; i++) {
-			if(invComp[i].getArea().intersects(alchSpot.getArea())) {
-				final Rectangle spot = invComp[i].getArea().intersection(alchSpot.getArea());
-				if((spot.width * spot.height) > (intersection.width * intersection.height)) {
-					bestSlot = invComp[i];
-					intersection = spot;
-				}							
+			RSComponent bestSlot = null;		
+			for(int i = 0; i < 27; i++) {
+				if(invComp[i].getArea().intersects(alchSpot.getArea())) {
+					final Rectangle spot = invComp[i].getArea().intersection(alchSpot.getArea());
+					if((spot.width * spot.height) > (intersection.width * intersection.height)) {
+						bestSlot = invComp[i];
+						intersection = spot;
+					}							
+				}
 			}
-		}
-		
-		if(bestSlot == null) {
-			log("Problem moving item to alch spot");
+			
+			if(bestSlot == null) {
+				log("Problem moving item to alch spot");
+				return false;
+			}
+			
+			if(!alchItem.equals(bestSlot)) {
+				alchItem.interact("Use " + alchItem.getText());
+				sleep(200);
+				mouse.move(alchItem.getPoint());
+				sleep(200);
+				mouse.drag(bestSlot.getPoint());
+			}
+			resetTimer = null;
+			counter = 0;
+			return true;
+		} catch (Exception e) {
+			log("Exception: " + e.toString());
+			//return counter++ == 5 ? false : setupItem();
 			return false;
-		}
-		
-		if(!alchItem.equals(bestSlot)) {
-			alchItem.interact("Use " + alchItem.getText());
-			sleep(200);
-			mouse.move(alchItem.getPoint());
-			sleep(200);
-			mouse.drag(bestSlot.getPoint());
-		}
-		resetTimer = null;
-		return true;
+		}		
 	}
 	
 
@@ -166,7 +173,7 @@ public class simpleAlcher extends Script implements PaintListener,
 			Alch();
 			antiban.run();
 		} else {
-			if (inventory.getCount(alchItems.get(0).getID()) == 0) {
+			if (game.isLoggedIn() && inventory.getCount(alchItems.get(0).getID()) == 0 && game.getTab() == Tab.INVENTORY) {
 				alchItems.remove(0);
 				if (!setupItem()) {
 					stopScript();
@@ -229,105 +236,104 @@ public class simpleAlcher extends Script implements PaintListener,
 				+ "  |  lvl: " + skills.getCurrentLevel(Skills.MAGIC) + "  |  item:  " + itemname;
 	}
 	
-    private Image getItemImage(final int ITEM_ID) {
-        try {
-            return ImageIO.read(new URL("http://services.runescape.com/m=itemdb_rs/3464_obj_sprite.gif?id=" + ITEM_ID));
-        } catch(IOException e) {
-        	 try {
-				return ImageIO.read(new URL("http://services.runescape.com/m=itemdb_rs/3464_obj_sprite.gif?id=" + (ITEM_ID - 1)));
-        	  } catch(IOException f) {
-        		  return null;
-			}
-        }
-    }
-
-	public class alchGUI extends JFrame {
-		
-		private static final long serialVersionUID = 1L;
-		JButton startButton = new JButton("Start");
-		JCheckBox itemCheckbox[] = new JCheckBox[alchItems.size()];
-		ImageIcon itemImages[] = new ImageIcon[alchItems.size()];
-		
-		JLabel instructionLabel = new JLabel("   loading Items...");
-		final int height = 32;
-			
-		public alchGUI() {
-			super("Simple Alcher");
-			
-			addWindowListener(new WindowAdapter() {
-				public void windowClosing(WindowEvent e) {
-					START_UP = false;
-					guiWait = false;
-					log("Cancelling Startup of script");
-					g.dispose();
-				}
-			});			
-			
-			startButton.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					for(int i = itemCheckbox.length - 1; i >= 0; i--) {
-						if(!itemCheckbox[i].isSelected()) {
-							alchItems.remove(i);
-						}
-					}
-					for(int i = 0; i < alchItems.size(); i++) {
-						log("Item to be alched: " + alchItems.get(i).getName());
-					}
-					guiWait = false;
-					g.dispose();
-				}
-			});
-			
-			JPanel bottumPane = new JPanel();
-			bottumPane.setLayout(new GridLayout(2, 1));
-			bottumPane.setPreferredSize(new Dimension(210, height * 2));
-			bottumPane.add(instructionLabel);
-			bottumPane.add(startButton);
-			
-			getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
-			getContentPane().add(bottumPane);
-			setLocationRelativeTo(getOwner());	        
-			pack();	        
-			setVisible(true);
-			
-			for(int i = 0; i < alchItems.size(); i++) {
-				itemCheckbox[i] = new JCheckBox(alchItems.get(i).getName());
-				itemImages[i] = new ImageIcon(getItemImage(alchItems.get(i).getID()));
-			}
-			
-			for(int i = 0; i < alchItems.size(); i++) {
-				itemCheckbox[i] = new JCheckBox(alchItems.get(i).getName());
-			}
-			
-			JPanel leftPane = new JPanel();
-			leftPane.setLayout(new GridLayout(itemCheckbox.length, 1));
-			leftPane.setPreferredSize(new Dimension(60, height * (itemCheckbox.length)));
-			for (ImageIcon curImage : itemImages) {
-				leftPane.add(new JLabel(curImage));
-			}
-			
-			JPanel rightPane = new JPanel();
-			rightPane.setLayout(new GridLayout(itemCheckbox.length, 1));
-			rightPane.setPreferredSize(new Dimension(150, height * (itemCheckbox.length)));
-			
-			for (JCheckBox curCheckBox : itemCheckbox) {
-				rightPane.add(curCheckBox);
-			}
-			
-			JPanel centerPane = new JPanel();
-			centerPane.setLayout(new BoxLayout(centerPane, BoxLayout.X_AXIS));
-			centerPane.add(leftPane);
-			centerPane.add(rightPane);
-			
-			instructionLabel.setText("   Please check the items you wish to alch");
-			getContentPane().remove(bottumPane);
-			getContentPane().add(centerPane);
-			getContentPane().add(bottumPane);
-			pack();	        
-			setVisible(true);							
+private Image getItemImage(final int ITEM_ID) {
+    try {
+        return ImageIO.read(new URL("http://services.runescape.com/m=itemdb_rs/3464_obj_sprite.gif?id=" + ITEM_ID));
+    } catch(IOException e) {
+    	 try {
+			return ImageIO.read(new URL("http://services.runescape.com/m=itemdb_rs/3464_obj_sprite.gif?id=" + (ITEM_ID - 1)));
+    	  } catch(IOException f) {
+    		  return null;
 		}
+    }
+}
+public class alchGUI extends JFrame {
+	
+	private static final long serialVersionUID = 1L;
+	JButton startButton = new JButton("Start");
+	JCheckBox itemCheckbox[] = new JCheckBox[alchItems.size()];
+	ImageIcon itemImages[] = new ImageIcon[alchItems.size()];
+	
+	JLabel instructionLabel = new JLabel("   loading Items...");
+	final int height = 32;
+		
+	public alchGUI() {
+		super("Simple Alcher");
+		
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				START_UP = false;
+				guiWait = false;
+				log("Cancelling Startup of script");
+				g.dispose();
+			}
+		});			
+		
+		startButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(int i = itemCheckbox.length - 1; i >= 0; i--) {
+					if(!itemCheckbox[i].isSelected()) {
+						alchItems.remove(i);
+					}
+				}
+				for(int i = 0; i < alchItems.size(); i++) {
+					log("Item to be alched: " + alchItems.get(i).getName());
+				}
+				guiWait = false;
+				g.dispose();
+			}
+		});
+		
+		JPanel bottumPane = new JPanel();
+		bottumPane.setLayout(new GridLayout(2, 1));
+		bottumPane.setPreferredSize(new Dimension(210, height * 2));
+		bottumPane.add(instructionLabel);
+		bottumPane.add(startButton);
+		
+		getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
+		getContentPane().add(bottumPane);
+		setLocationRelativeTo(getOwner());	        
+		pack();	        
+		setVisible(true);
+		
+		for(int i = 0; i < alchItems.size(); i++) {
+			itemCheckbox[i] = new JCheckBox(alchItems.get(i).getName());
+			itemImages[i] = new ImageIcon(getItemImage(alchItems.get(i).getID()));
+		}
+		
+		for(int i = 0; i < alchItems.size(); i++) {
+			itemCheckbox[i] = new JCheckBox(alchItems.get(i).getName());
+		}
+		
+		JPanel leftPane = new JPanel();
+		leftPane.setLayout(new GridLayout(itemCheckbox.length, 1));
+		leftPane.setPreferredSize(new Dimension(60, height * (itemCheckbox.length)));
+		for (ImageIcon curImage : itemImages) {
+			leftPane.add(new JLabel(curImage));
+		}
+		
+		JPanel rightPane = new JPanel();
+		rightPane.setLayout(new GridLayout(itemCheckbox.length, 1));
+		rightPane.setPreferredSize(new Dimension(150, height * (itemCheckbox.length)));
+		
+		for (JCheckBox curCheckBox : itemCheckbox) {
+			rightPane.add(curCheckBox);
+		}
+		
+		JPanel centerPane = new JPanel();
+		centerPane.setLayout(new BoxLayout(centerPane, BoxLayout.X_AXIS));
+		centerPane.add(leftPane);
+		centerPane.add(rightPane);
+		
+		instructionLabel.setText("   Please check the items you wish to alch");
+		getContentPane().remove(bottumPane);
+		getContentPane().add(centerPane);
+		getContentPane().add(bottumPane);
+		pack();	        
+		setVisible(true);							
 	}
+}
 
 	@Override
 	public void messageReceived(MessageEvent e) {		
