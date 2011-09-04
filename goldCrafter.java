@@ -335,9 +335,9 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 	 */
 	private void makeItem() {
 		if(isInterfaceOpen()) {
-			mouse.click(clickSpot.getLocation(), false);
-			menu.doAction("Make All");
-			//interfaces.getComponent(446, COMPONENT_ID).interact("Make All");
+			//mouse.click(clickSpot.getLocation(), false);
+			//menu.doAction("Make All");
+			interfaces.getComponent(446, COMPONENT_ID).interact("Make All");
 		}
 	}
 
