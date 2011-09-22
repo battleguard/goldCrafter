@@ -38,7 +38,7 @@ import org.rsbot.script.wrappers.RSComponent;
 import org.rsbot.script.wrappers.RSItem;
 
 
-@ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 3.3, description = "simple alcher, by battleguard")
+@ScriptManifest(authors = { "battleguard" }, keywords = { "simple alcher" }, name = "simple alcher", version = 3.4, description = "simple alcher, by battleguard")
 public class simplealcher extends Script implements PaintListener,
 		MessageListener {
 	
