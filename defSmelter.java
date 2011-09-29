@@ -1,5 +1,6 @@
 // C:\ceg453\tone.c
-//This program produces a C note or 261.6Hz frequency
+//This program produces a C note or 261.6Hz frequency 
+// for a 1/8 measure (560ms) and pauses for 80ms between notes
 #include <mc9s12c32.h>
 void main()
 {
