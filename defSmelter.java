@@ -15,6 +15,12 @@ void main()
   while(1)
   {   
     while(!(TFLG1&0x01)); // Wait till Flag ()TCO == TCNT)
-    TC0=TCNT+45872; // Update TCO to not set off flag until 45872 clocks & clear C0F   
+    TC0=TCNT+45872; // Update TCO to not set off flag until 45872 clocks & clear C0F
+    
+    // If count equals Pause or Duration count based on what the TCTL2 is set to enter if
+    if(count++ == (TCTL2 == 0x01 ? 146 : 21)) { 
+         TCTL2 ^= 0x01; // Toggle the output compare to toggle or of
+         count = 0; // Clear count toastart counting again for the next puase or note duration
+    }
   }
 }
