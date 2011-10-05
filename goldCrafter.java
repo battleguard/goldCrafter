@@ -1,8 +1,14 @@
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Image;
+import java.awt.Insets;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.*;
 import java.io.IOException;
@@ -11,17 +17,18 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
 import javax.imageio.ImageIO;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.LayoutStyle;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
+
 import org.rsbot.event.listeners.PaintListener;
 import org.rsbot.script.Script;
 import org.rsbot.script.ScriptManifest;
 import org.rsbot.script.methods.Game.Tab;
+import org.rsbot.script.methods.GrandExchange.GEItem;
 import org.rsbot.script.methods.Skills;
 import org.rsbot.script.util.SkillData;
 import org.rsbot.script.util.Timer;
@@ -36,11 +43,8 @@ import org.rsbot.script.wrappers.RSTilePath;
 public class goldCrafter extends Script implements PaintListener, MouseListener {
 	
 	
-	private Rectangle clickSpot = new Rectangle(116, 90, 20, 20);
-	
 	private final static int FURNACE_ID = 11666;
-	private static boolean guiWait = true;
-	private craftingGUI g = new craftingGUI();
+	private static boolean guiWait = true, START_SCRIPT = true;
 	
 	private final static int RING_MOULD_ID = 1592, NECK_MOULD_ID = 1597,
 			AMMY_MOULD_ID = 1595, BRACELET_MOULD_ID = 11065;;
@@ -79,30 +83,25 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 	private RSTilePath pathToFurnace;
 
 	public boolean onStart() {
-		g.setVisible(true);
-		while (guiWait)
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				new gui();
+			}
+		});
+		while(guiWait) 
 			sleep(500);
-		ITEM_PRICE -= grandExchange.lookup(GOLD_ID).getGuidePrice();
-		log("Price minus goldbar" + ITEM_PRICE);
-		if (GEM_ID != GOLD_ID) {
-			ITEM_PRICE -= grandExchange.lookup(GEM_ID).getGuidePrice();
-		}
-		log("Price minus gem" + ITEM_PRICE);
-		log("Thank you for starting Gold Crafter");
 		pathToFurnace = walking.newTilePath(tilesToFurnace);
-		return true;
+		return START_SCRIPT;
 	}
 
 	@Override
 	public int loop() {
 		try {
-			mouse.setSpeed(random(4, 6));
+			mouse.setSpeed(random(6, 8));
 			curState = getState();
 			switch (curState) {
 			case depositing:
 				bank.depositAllExcept(MOULD_ID);
-				// deposit();
-				// bankWithdrawal();
 				break;
 			case withdrawling:
 				bankWithdrawal();
@@ -204,7 +203,7 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 	}
 
 	private void craftItems2() {
-		if (!startedCrafting) {
+		if (!startedCrafting) {			
 			if (isInterfaceOpen()) {
 				makeItem();
 				startedCrafting = true;
@@ -214,6 +213,7 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 				waitingForInterface();
 			}
 		} else {
+			//log("currently crafting");
 			int currentXP = skills.getCurrentExp(Skills.CRAFTING);
 			if (!walking.isRunEnabled()) {
 				walking.setRun(true);
@@ -237,7 +237,6 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 		if (getMyPlayer().isMoving() || bank.isOpen()) {
 			if (calc.distanceBetween(players.getMyPlayer().getLocation(),
 					BANK_TILE) > 7) {
-				// antiban
 			}
 			return;
 		}
@@ -323,11 +322,19 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 	 */
 	private boolean isInterfaceOpen() {
 		try {
+			return interfaces.getComponent(446, 13).getText().equals("What would you like to make?");
+		} catch (Exception e) {			
+		}
+		return false;
+		/*
+		 try {
+		 
 			return interfaces.getComponent(446, 13).getText().equals("What would you like to make?") ? true : false;
 		} catch(Exception e) {
 			log("Exception occured " + e);
 			return false;
-		}		
+		}
+		*/		
 	}
 
 	/**
@@ -335,8 +342,6 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 	 */
 	private void makeItem() {
 		if(isInterfaceOpen()) {
-			//mouse.click(clickSpot.getLocation(), false);
-			//menu.doAction("Make All");
 			interfaces.getComponent(446, COMPONENT_ID).interact("Make All");
 		}
 	}
@@ -350,9 +355,7 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 		try {
 			if (inventory.contains(GOLD_ID) && inventory.contains(GEM_ID)
 					&& inventory.contains(MOULD_ID)) {
-				return FurnaceArea
-						.contains(players.getMyPlayer().getLocation()) ? State.Crafting
-						: State.To_Furnace;
+				return FurnaceArea.contains(players.getMyPlayer().getLocation()) ? State.Crafting : State.To_Furnace;
 			} else {
 				if (!bank.isOpen()) {
 					return State.To_Bank;
@@ -468,6 +471,7 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 	
 	@Override
 	public void onRepaint(Graphics g) {
+		
 		if (skillData == null) {
 			skillData = skills.getSkillDataInstance();
 		}
@@ -564,236 +568,165 @@ public class goldCrafter extends Script implements PaintListener, MouseListener 
 		 */
 	}
 
-
-	
-	/**
-	 * Class that handles the GUI Finds the COMPONENT_ID, MOULD_ID, EXP_PER that
-	 * we will be using
-	 */
-	public class craftingGUI extends JFrame {
+	public class gui extends JFrame {
 		private static final long serialVersionUID = 1L;
-
-		public craftingGUI() {
-			initComponents();
+		
+		private final String [] gems = {"Gold bar", "Sapphire", "Emerald","Ruby","Diamond","Dragonstone","Onyx"};
+		private final String [] type = {"ring", "necklace", "amulet","bracelet"};
+		
+		
+		private final JLabel headerLbl = new JLabel("Alkharid gold & jewelry crafting", JLabel.CENTER);
+		private final JLabel locationLbl = new JLabel("Select Gem ", JLabel.RIGHT);
+		private final JLabel barLbl = new JLabel("Select Type ", JLabel.RIGHT);
+		private final JLabel profitLbl = new JLabel("Profit per item: --: ", JLabel.RIGHT);
+		
+		private final JComboBox gemsCombo = new JComboBox(gems);
+		private final JComboBox typeCombo = new JComboBox(type);
+		
+		
+		private final JButton calcBtn = new JButton("Calc profit");
+		private final JButton startBtn = new JButton("Start");		
+		private final Font headerFont = new Font("Book antiqua", Font.PLAIN, 18);
+		private final Font normalFont = new Font("Book antiqua", Font.PLAIN, 16);
+		
+		GridBagConstraints c;
+		Container pane;		
+		
+				
+		void setFonts(Font font, Component... comps) {
+			for (Component curcomp : comps) {
+				curcomp.setFont(font);
+			}
 		}
 		
-
-
-		private void button1ActionPerformed(ActionEvent e) {
-			String gem = gemSelected.getSelectedItem().toString();
-			String type = typeSelected.getSelectedItem().toString();
-			
-			int shiftX = 50;
-			if(type.equals("ring")) {
-				clickSpot.x = 104;
-				shiftX = 45;
+		void addBorder(JLabel... lbls) {
+			final Border border = LineBorder.createGrayLineBorder();
+			for (JLabel lbl : lbls) {
+				lbl.setBorder(border);
 			}
-			
-			if (gem.equals("Sapphire")) {
-				clickSpot.x += shiftX;
-				GEM_ID = SAPPHIRE_ID;
-				EXP_PER = SAPPHIRE_XP;
-				COMPONENT_ID += 2;
-			} else if (gem.equals("Emerald")) {
-				clickSpot.x += (shiftX * 2);
-				GEM_ID = EMERALD_ID;
-				EXP_PER = EMERALD_XP;
-				COMPONENT_ID += 4;
-			} else if (gem.equals("Ruby")) {
-				clickSpot.x += (shiftX * 3);
-				GEM_ID = RUBY_ID;
-				EXP_PER = RUBY_XP;
-				COMPONENT_ID += 6;
-			} else if (gem.equals("Diamond")) {
-				clickSpot.x += (shiftX * 4);
-				GEM_ID = DIAMOND_ID;
-				EXP_PER = DIAMOND_XP;
-				COMPONENT_ID += 8;
-			}
-
-			if (type.equals("necklace")) {
-				clickSpot.y += 62;
-				MOULD_ID = NECK_MOULD_ID;
-				EXP_PER += 5;
-				COMPONENT_ID -= 14;
-			} else if (type.equals("amulet")) {
-				clickSpot.y += 124;				
-				MOULD_ID = AMMY_MOULD_ID;
-				EXP_PER += 15;
-				COMPONENT_ID -= 29;
-			} else if (type.equals("bracelet")) {
-				clickSpot.y += 183;		
-				MOULD_ID = BRACELET_MOULD_ID;
-				EXP_PER += 10;
-				COMPONENT_ID -= 49;
-			}
-			
-			
-			if(type.equals("amulet")) {
-				ITEM_PRICE = grandExchange.lookup(1673 + (COMPONENT_ID - 53)).getGuidePrice();
-			} else {
-				ITEM_NAME = gem + " " + type;
-				ITEM_PRICE = grandExchange.lookup(ITEM_NAME).getGuidePrice();
-			}
-			log("Price of finished product" + ITEM_PRICE);
-
-			guiWait = false;
-			g.dispose();
 		}
-
-		private void initComponents() {
-			// JFormDesigner - Component initialization - DO NOT MODIFY
-			// //GEN-BEGIN:initComponents
-			// Generated using JFormDesigner Evaluation license - Battleguard
-			label1 = new JLabel();
-			label2 = new JLabel();
-			gemSelected = new JComboBox();
-			startButton = new JButton();
-			label3 = new JLabel();
-			typeSelected = new JComboBox();
-
-			// ======== this ========
-			Container contentPane = getContentPane();
-
-			// ---- label1 ----
-			label1.setText("Al Kaharid Gold Crafter");
-			label1.setFont(new Font("Tahoma", Font.PLAIN, 20));
-
-			// ---- label2 ----
-			label2.setText("Crafting Item:");
-			label2.setFont(new Font("Tahoma", Font.PLAIN, 14));
-
-			// ---- gemSelected ----
-			gemSelected.setModel(new DefaultComboBoxModel(new String[] {
-					"Gold", "Sapphire", "Emerald", "Ruby", "Diamond" }));
-
-			// ---- startButton ----
-			startButton.setText("Start");
-			startButton.addActionListener(new ActionListener() {
+		
+		void addToGrid(Component comp, int gridx, int gridy, int gridwidth, double weightx) {
+			c.gridx = gridx;
+			c.gridy = gridy;
+			c.gridwidth = gridwidth;
+			c.weightx = weightx;
+			pane.add(comp, c);
+		}
+		
+		int saveVariables() {						
+			final int[] mouldIDTable = {1592, 1597, 1595, 11065};			
+			final int[][] xpTable = {
+					{15, 40, 55, 70, 85, 100, 115},   // RINGS
+					{20, 5, 60, 75, 90, 105, 120},    // NECKLACES
+					{30, 65, 70, 85, 100, 150, 165},  // AMULETS
+					{25, 60, 65, 80, 95, 110, 400}    // BRACELETS
+			};			
+			final int[][] compTable = {
+					{82, 84, 86, 88, 90, 92, 94},    // RINGS
+					{68, 70, 72, 74, 76, 78, 80},    // NECKLACES
+					{53, 55, 57, 59, 61, 63, 65},    // AMULETS
+					{33, 35, 37, 39, 41, 43, 45}     // BRACELETS
+			};
+			
+			final int typeIdx = typeCombo.getSelectedIndex();
+			final int gemIdx = gemsCombo.getSelectedIndex();
+			
+			MOULD_ID = mouldIDTable[typeIdx];
+			EXP_PER = xpTable[typeIdx][gemIdx];
+			COMPONENT_ID = compTable[typeIdx][gemIdx];
+			
+			/**
+			 * COMPONENT INFO
+			 * 
+			 * RINGS
+			 * 82, 84, 86, 88, 90, 92, 94
+			 * 
+			 * NECKLACES
+			 * 68, 70, 72, 74, 76, 78, 80
+			 * 
+			 * AMULETS
+			 * 53, 55, 57, 59, 61, 63, 65
+			 * 
+			 * BRACELETS
+			 * 33, 35, 37, 39, 41, 43, 45
+			 */
+			
+			
+			
+			GEItem itemInfo;
+			GEItem GemInfo = grandExchange.lookup(gemsCombo.getSelectedItem().toString());
+			if(GemInfo.getID() == 2357) {
+				itemInfo = grandExchange.lookup("Gold " + typeCombo.getSelectedItem().toString());
+				ITEM_PRICE = itemInfo.getGuidePrice() - GemInfo.getGuidePrice(); 
+			} else {
+				itemInfo = grandExchange.lookup(GemInfo.getName() + " " + typeCombo.getSelectedItem().toString());
+				ITEM_PRICE = itemInfo.getGuidePrice() - GemInfo.getGuidePrice() -  grandExchange.lookup(2357).getGuidePrice(); 
+			}
+			
+			ITEM_NAME = itemInfo.getName();
+			GEM_ID = GemInfo.getID();
+			
+			log("Making " + itemInfo.getName() + ", ID of item: " + itemInfo.getID() + " XP per: " + EXP_PER);
+			log("It will require: " + GemInfo.getName() + ", ID of gem: " + GemInfo.getID());					
+			log("Profit per item: " + ITEM_PRICE);
+			return ITEM_PRICE;
+		}
+		
+		public gui() {
+			super("Alkharid gold & jewelry crafting"); // name the window that it the GUI pops in
+			
+			addBorder(headerLbl, locationLbl, barLbl, profitLbl);			
+			setFonts(headerFont, headerLbl, locationLbl, barLbl, profitLbl);
+			setFonts(normalFont, startBtn, gemsCombo, typeCombo, calcBtn);
+			
+			pane = new Container();
+			pane.setLayout(new GridBagLayout());
+			c = new GridBagConstraints();			
+			c.fill = GridBagConstraints.HORIZONTAL;
+			c.ipady = c.ipadx = 5; // SET INDIX Y PADDING
+			c.insets = new Insets(10,10,10,10); // ADD SPACING BETWEEN GRID COMPONENTS
+			
+			pane.setPreferredSize(new Dimension(400, 250));
+			addToGrid(headerLbl, 0, 0, 2, 1.0);
+			addToGrid(locationLbl, 0, 1, 1, .80);						
+			addToGrid(barLbl, 0, 2, 1, .80);
+			addToGrid(profitLbl, 0, 3, 1, .80);
+			addToGrid(gemsCombo, 1, 1, 1, .20);
+			addToGrid(typeCombo, 1, 2, 1, .20);
+			addToGrid(calcBtn, 1, 3, 1, .20);	
+			addToGrid(startBtn, 0, 4, 2, 1.0);
+			
+			addWindowListener(new WindowAdapter() {
+				public void windowClosing(WindowEvent e) {
+					START_SCRIPT = guiWait = false;
+					log("Cancelling Startup of script"); 
+					dispose();
+				}
+			});			
+			
+			startBtn.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					button1ActionPerformed(e);
+					saveVariables();
+					guiWait = false;
+					dispose();
 				}
 			});
-
-			// ---- label3 ----
-			label3.setText("Type to craft: ");
-			label3.setFont(new Font("Tahoma", Font.PLAIN, 14));
-
-			// ---- typeSelected ----
-			typeSelected.setModel(new DefaultComboBoxModel(new String[] {
-					"ring", "necklace", "bracelet", "amulet" }));
-
-			GroupLayout contentPaneLayout = new GroupLayout(contentPane);
-			contentPane.setLayout(contentPaneLayout);
-			contentPaneLayout
-					.setHorizontalGroup(contentPaneLayout
-							.createParallelGroup()
-							.addGroup(
-									contentPaneLayout
-											.createSequentialGroup()
-											.addContainerGap()
-											.addGroup(
-													contentPaneLayout
-															.createParallelGroup()
-															.addGroup(
-																	contentPaneLayout
-																			.createSequentialGroup()
-																			.addGroup(
-																					contentPaneLayout
-																							.createParallelGroup()
-																							.addGroup(
-																									contentPaneLayout
-																											.createSequentialGroup()
-																											.addComponent(
-																													label2)
-																											.addPreferredGap(
-																													LayoutStyle.ComponentPlacement.UNRELATED)
-																											.addComponent(
-																													gemSelected,
-																													GroupLayout.PREFERRED_SIZE,
-																													GroupLayout.DEFAULT_SIZE,
-																													GroupLayout.PREFERRED_SIZE))
-																							.addComponent(
-																									label1))
-																			.addContainerGap(
-																					23,
-																					Short.MAX_VALUE))
-															.addGroup(
-																	GroupLayout.Alignment.TRAILING,
-																	contentPaneLayout
-																			.createSequentialGroup()
-																			.addComponent(
-																					startButton)
-																			.addContainerGap())
-															.addGroup(
-																	contentPaneLayout
-																			.createSequentialGroup()
-																			.addComponent(
-																					label3)
-																			.addPreferredGap(
-																					LayoutStyle.ComponentPlacement.RELATED)
-																			.addComponent(
-																					typeSelected,
-																					0,
-																					69,
-																					Short.MAX_VALUE)
-																			.addGap(65,
-																					65,
-																					65)))));
-			contentPaneLayout
-					.setVerticalGroup(contentPaneLayout
-							.createParallelGroup()
-							.addGroup(
-									contentPaneLayout
-											.createSequentialGroup()
-											.addContainerGap()
-											.addComponent(label1)
-											.addGap(31, 31, 31)
-											.addGroup(
-													contentPaneLayout
-															.createParallelGroup(
-																	GroupLayout.Alignment.BASELINE)
-															.addComponent(
-																	label2)
-															.addComponent(
-																	gemSelected,
-																	GroupLayout.PREFERRED_SIZE,
-																	GroupLayout.DEFAULT_SIZE,
-																	GroupLayout.PREFERRED_SIZE))
-											.addPreferredGap(
-													LayoutStyle.ComponentPlacement.RELATED,
-													31, Short.MAX_VALUE)
-											.addGroup(
-													contentPaneLayout
-															.createParallelGroup(
-																	GroupLayout.Alignment.BASELINE)
-															.addComponent(
-																	label3)
-															.addComponent(
-																	typeSelected,
-																	GroupLayout.PREFERRED_SIZE,
-																	GroupLayout.DEFAULT_SIZE,
-																	GroupLayout.PREFERRED_SIZE))
-											.addGap(26, 26, 26)
-											.addComponent(startButton)
-											.addContainerGap()));
-			pack();
+			
+			calcBtn.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {				
+					profitLbl.setText("Profit per item: " + saveVariables() + "gp ");
+					setVisible(true);
+				}
+			});
+			
+			getContentPane().add(pane);
 			setLocationRelativeTo(getOwner());
-			// JFormDesigner - End of component initialization
-			// //GEN-END:initComponents
+			pack();	        
+			setVisible(true);
 		}
-
-		// JFormDesigner - Variables declaration - DO NOT MODIFY
-		// //GEN-BEGIN:variables
-		// Generated using JFormDesigner Evaluation license - Battleguard
-		private JLabel label1;
-		private JLabel label2;
-		private JComboBox gemSelected;
-		private JButton startButton;
-		private JLabel label3;
-		private JComboBox typeSelected;
-		// JFormDesigner - End of variables declaration //GEN-END:variables
 	}
 
 
