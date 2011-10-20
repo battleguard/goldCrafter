@@ -14,7 +14,7 @@ unsigned int DUTY_CYCLE=99;
 #pragma interrupt_handler tc0_isr
 void tc0_isr()
 {
-       if(!(PTP & 0x20)) // SW2 (i.e., PP5) is pressed down & 0x01)//if switch PortT  high change duty cyle
+    if(!(PTP & 0x20)) // SW2 (i.e., PP5) is pressed down & 0x01)//if switch PortT  high change duty cyle
     {
          COUNT_VAL= 240 * DUTY_CYCLE;
     }
@@ -32,6 +32,8 @@ void tc0_isr()
 	{
          TC0=TCNT+ COUNT_VAL;
     }
+    //COUNT_VAL = 240 * (!(PTP & 0x20) ?  DUTY_CYCLE : 50;
+    //TCO = TCNT + !(PTT & 0x01) ? 24000- COUNT_VAL : COUNT_VAL;
 
 }
 
