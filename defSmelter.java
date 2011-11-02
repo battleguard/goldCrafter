@@ -1,57 +1,63 @@
-// C:\CEG453\tone_interrupt.c
-// This program produces a 4 KHz square wave and prints 
-//   a "Hello World" message to the screen every second.
-// It also flashes LED1 at a frequency of 0.5 Hz (i.e.,
-//   on for one second and off for one second).
-// Assume that the E clock frequency is 24 MHz.
+// C:\ceg453\ADC_scan.c
+// This program reads 80 ADC samples from channel 7 and
+// prints out their values.
+// The conversion is 8-bit instead of 10-bit.
+// WARNING: Use an oscilloscope to make sure the analog signal is 
+//          within the 0 to 5 volt range before connecting it to EVB.
+//          For best observation results, use a 2 KHz sinusoidal wave,
+//          0 to 5 volt peak to peak. 
 #include <mc9s12c32.h>
 
-//unsigned int count=0;
-//GLOBALS
-unsigned int COUNT_VAL;
-unsigned int DUTY_CYCLE=99;
-  
-#pragma interrupt_handler tc0_isr
-void tc0_isr()
-{
-    if(!(PTP & 0x20)) // SW2 (i.e., PP5) is pressed down & 0x01)//if switch PortT  high change duty cyle
-    {
-         COUNT_VAL= 240 * DUTY_CYCLE;
-    }
-    else//default to 50%
-    {
-        COUNT_VAL= 12000;
-    }
-	
-    //check in high or low
-    if(!(PTT & 0x01))
-    {
-          TC0= TCNT + (24000- COUNT_VAL);
-    }
-    else 
-	{
-         TC0=TCNT+ COUNT_VAL;
-    }
-    //COUNT_VAL = 240 * (!(PTP & 0x20) ?  DUTY_CYCLE : 50;
-    //TCO = TCNT + !(PTT & 0x01) ? 24000- COUNT_VAL : COUNT_VAL;
+void iprint(int n)
+{ 
+   int a;
+   if( n > 9 ) { 
+      a = n / 10;
+      n -= 10 * a;
+      iprint(a);
+   }
+   putchar('0'+n);
+}
 
+
+void ATD_init(void)
+{
+  int i;
+  
+  ATDCTL2 = 0xe0; // enable ADT and use fast flag clear
+  for(i=0; i<50; i++) asm("nop"); // a delay of at least 5 micro-sec
+  ATDCTL3 = 0x0A; // conversion length : 1 sample
+  ATDCTL4 = 0xA5; // 8-bit resolution;
+                  // 14 (=2+4+8) ATD clock cycles/sample for conversion 
+                  // 2 (=24/12) MHz ATD clock
+				  // (Modify this register to get faster conversion.)
+}
+
+int getHertz() {
+  unsigned int samples = 0, T1 = 0, T2 = 0;
+
+  ATD_init();
+  ATDCTL5 = 0x27; // start an A/D conversion, scan, single channel (7)
+  
+  while(ATDDR0H > 50) { // wait till at the bottum of a wave
+   	 while(!(ATDSTAT0 & 0x80));
+  }
+  while(T2 == 0) {
+    while(!(ATDSTAT0 & 0x80)); // wait until conversion is complete
+	samples++;
+	if(ATDDR0H > 125  && ATDDR0H < 129) { // (126-128)
+	   if(T1 == 0) T1 = samples; else T2 = samples; 
+	   while(ATDDR0H > 50) { // wait till at the bottum of wave
+	       while(!(ATDSTAT0 & 0x80));
+		   samples++;
+	   }
+	}
+  }
+  return((47619 / (T2 - T1)) * 3);
 }
 
 void main()
 {
-  TIOS|=0x01; // use channel 0 for output compare
-  TSCR1=0x90; // enable timer and allow fast flag clear
-  TCTL2=0x01; // select toggle as the action for output compare
-  TC0=TCNT+12000; // set up TC0 and clear C0F flag
-  DDRA = 0xff; // set port A as output pins (for LED1)
-
-  *(void (**)()) 0x0fee = tc0_isr;
-  // *(int *) 0x0fee = (int) tc0_isr;
-  INTR_ON();
-  TIE = 0x01; // locally enable TC0 interrupt
-  
-  while(1)
-  {	
-	puts("fmnbh\r");
-  }
+  iprint(getHertz());
+  asm("JMP $FC00"); // return to Monitor
 }
